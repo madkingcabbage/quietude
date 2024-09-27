@@ -29,7 +29,7 @@ impl TickBasedRng {
         self.num = None;
         self.tick = tick;
     }
-    
+
     pub fn new(seed: u32, tick: u32) -> Self {
         Self {
             num: None,

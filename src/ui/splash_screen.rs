@@ -13,7 +13,7 @@ use ratatui::{
 
 use crate::world::world::World;
 
-use super::{traits::Screen, ui_callback::UiCallbackPreset};
+use super::{control_scheme::ControlSchemeType, traits::Screen, ui_callback::UiCallbackPreset};
 
 #[derive(Debug)]
 pub struct SplashScreen {
@@ -136,11 +136,10 @@ impl SplashScreen {
         self.state = State::Unsweep;
         self.tick = 0;
     }
-
 }
 
 impl Screen for SplashScreen {
-    fn handle_key_events(&mut self, _key: KeyEvent, _world: &World) -> Option<UiCallbackPreset> {
+    fn handle_key_events(&mut self, _key: KeyEvent, _scheme: ControlSchemeType, _world: &World) -> Option<UiCallbackPreset> {
         match self.state {
             State::Start => self.sweep(),
             State::Wait => self.unsweep(),

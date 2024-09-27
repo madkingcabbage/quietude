@@ -5,7 +5,17 @@ use crossterm::event::{self, poll, Event, KeyCode, KeyEvent, MouseEvent};
 use log::info;
 use ratatui::prelude::CrosstermBackend;
 
-use crate::{store::save, tui::Tui, types::Message, ui::{popup_message::PopupMessage, ui::Ui}, utils::frequency_to_period, world::world::World};
+use crate::{
+    store::save,
+    tui::Tui,
+    types::{FormattedString, FormattedText, Message},
+    ui::{
+        popup_message::{PopupMessage, PopupStyle},
+        ui::Ui,
+    },
+    utils::frequency_to_period,
+    world::{log::LogStyle, world::World},
+};
 
 pub struct App {
     pub world: World,
@@ -21,7 +31,7 @@ impl App {
             rand::random()
         };
 
-        let mut world = if let Some(savename) = savename {
+        let world = if let Some(savename) = savename {
             World::new(&savename)?
         } else {
             World::from_seed(seed)?
@@ -39,7 +49,9 @@ impl App {
         let _backend = CrosstermBackend::new(writer);
         let mut _tui = Tui::new()?;
         while self.running {
-            if poll(frequency_to_period(self.ui.get_current_refresh_rate() as u32))? {
+            if poll(frequency_to_period(
+                self.ui.get_current_refresh_rate() as u32
+            ))? {
                 match event::read()? {
                     Event::Key(key) => self.handle_key_events(key)?,
                     Event::Mouse(mouse) => self.handle_mouse_events(mouse)?,
@@ -62,20 +74,18 @@ impl App {
                 if let Some(callback) = self.ui.handle_key_events(key, &self.world) {
                     match callback.call(self) {
                         Ok(Some(Message::Popup(text))) => {
-                            self.ui
-                                .set_popup(PopupMessage::Ok(
-                                    text,
-                                ));
+                            self.ui.set_popup(PopupMessage::Ok(text));
                         }
                         Ok(Some(Message::Log(text))) => {
-                            self.ui.print_to_log(text)?;
+                            self.world.log.print_formatted_string(text);
                         }
                         Ok(None) => {}
                         Err(e) => {
-                            self.ui
-                                .set_popup(PopupMessage::Err(
-                                    e.to_string()
-                                ));
+                            let string = FormattedString::from(
+                                &None,
+                                FormattedText::new(&e.to_string(), PopupStyle::Error),
+                            );
+                            self.ui.set_popup(PopupMessage::Err(string));
                         }
                     }
                 }
@@ -88,20 +98,14 @@ impl App {
         if let Some(callback) = self.ui.handle_mouse_events(mouse, &self.world) {
             match callback.call(self) {
                 Ok(Message::Popup(text)) => {
-                    self.ui
-                        .set_popup(crate::ui::popup_message::PopupMessage::Ok(
-                            text,
-                    ));
+                    self.ui.set_popup(PopupMessage::Ok(text));
                 }
                 Ok(Message::Log(text)) => {
-                    self.ui.print_to_log(text)?;
+                    self.world.log.print_formatted_string(text);
                 }
                 Ok(None) => {}
                 Err(e) => {
-                    self.ui
-                        .set_popup(crate::ui::popup_message::PopupMessage::Err(
-                            e.to_string()
-                        ));
+                    self.ui.set_popup(PopupMessage::Err(e.to_string()));
                 }
             }
         }

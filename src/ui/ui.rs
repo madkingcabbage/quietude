@@ -5,10 +5,15 @@ use crossterm::event::KeyEvent;
 use ratatui::Frame;
 use tui_textarea::TextArea;
 
-use crate::{types::{Coords3D, Direction3D}, world::world::World};
+use crate::{
+    types::{Coords3D, Direction1D, Direction3D},
+    world::world::World,
+};
 
 use super::{
-    control_scheme::ControlSchemeType, cursor::Cursor, main_screen::MainScreen, popup_message::PopupMessage, splash_screen::SplashScreen, traits::Screen, ui_callback::UiCallbackPreset
+    control_scheme::ControlSchemeType, cursor::Cursor, main_screen::MainScreen,
+    popup_message::PopupMessage, splash_screen::SplashScreen, traits::Screen,
+    ui_callback::UiCallbackPreset,
 };
 
 pub struct Ui {
@@ -56,17 +61,21 @@ impl Ui {
         self.popup_messages.remove(0);
     }
 
-    pub fn move_cursor(&mut self, direction: Direction3D) {
-        let mut coords = self.cursor.coords;
-        self.cursor.coords.move_in_direction(direction)
+    pub fn move_cursor(&mut self, direction: &Direction3D) {
+        self.cursor.coords.move_in_direction(direction);
+    }
+
+    pub fn move_dialogue_highlight(&mut self, direction: &Direction1D, max_choice: usize) {
+        self.main_screen.dialogue_window.move_highlight(*direction, max_choice);
     }
 
     pub fn handle_key_events(&mut self, key: KeyEvent, world: &World) -> Option<UiCallbackPreset> {
+        let scheme = self.scheme;
         if self.popup_messages.len() > 0 {
-            return self.popup_messages[0].consumes_input(&mut self.popup_input, key, &self.scheme);
+            return self.popup_messages[0].consumes_input(&mut self.popup_input, key, &scheme);
         }
 
-        self.get_active_screen_mut().handle_key_events(key, world)
+        self.get_active_screen_mut().handle_key_events(key, scheme, world)
     }
 
     fn get_active_window(&mut self) -> Option<&mut dyn Screen> {

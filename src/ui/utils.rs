@@ -1,6 +1,9 @@
 use tui_textarea::TextArea;
 
-use super::{constants::{MAX_NAME_LENGTH, MIN_NAME_LENGTH}, widgets::default_block};
+use super::{
+    constants::{MAX_NAME_LENGTH, MIN_NAME_LENGTH},
+    widgets::default_block,
+};
 
 pub fn validate_textarea_input(textarea: &mut TextArea<'_>, title: String) -> bool {
     let text = textarea.lines()[0].trim();

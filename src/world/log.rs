@@ -3,11 +3,11 @@ use std::default;
 use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
 
-use crate::types::Color;
+use crate::types::{Color, Coords3D, FormattedString, FormattedText};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Log {
-    pub contents: Vec<(String, LogStyle)>,
+    pub contents: Vec<FormattedString<LogStyle>>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
@@ -20,14 +20,16 @@ pub enum LogStyle {
 impl Log {
     pub fn new() -> Self {
         Log {
-            contents: Vec::new(),
+            contents: vec![],
         }
     }
 
-    pub fn print_to(&mut self, s: &str, style: LogStyle) {
-        self.contents.push((String::from(s), style));
+    pub fn print_formatted_string(&mut self, string: FormattedString<LogStyle>) {
+        self.contents.push(string);
     }
+
 }
+
 
 impl From<LogStyle> for Style {
     fn from(value: LogStyle) -> Self {

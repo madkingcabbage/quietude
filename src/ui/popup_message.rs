@@ -1,15 +1,30 @@
+use std::default;
+
 use crossterm::event::KeyEvent;
+use ratatui::style::Style;
+use serde::{Deserialize, Serialize};
 use tui_textarea::TextArea;
+
+use crate::types::{Color, FormattedString};
 
 use super::{
     control_scheme::{ControlSchemeType, UiKey},
-    ui_callback::UiCallbackPreset, utils::validate_textarea_input,
+    ui_callback::UiCallbackPreset,
+    utils::validate_textarea_input,
 };
 
 pub enum PopupMessage {
-    Ok(String),
-    Err(String),
+    Ok(FormattedString<PopupStyle>),
+    Err(FormattedString<PopupStyle>),
     SaveNameDialog,
+}
+
+#[derive(Clone, Default, Deserialize, Serialize, Debug, PartialEq)]
+pub enum PopupStyle {
+    #[default]
+    Default,
+    Emphasis(Color),
+    Error,
 }
 
 impl PopupMessage {
@@ -35,5 +50,11 @@ impl PopupMessage {
             }
         }
         None
+    }
+}
+
+impl From<PopupStyle> for Style {
+    fn from(value: PopupStyle) -> Self {
+        Style::new()
     }
 }

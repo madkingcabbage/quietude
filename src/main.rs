@@ -14,7 +14,7 @@ use log4rs::{
 };
 use quietude::app::App;
 
-#[clap(name="Q", about = "TUI exploration of Pythagorea", author, version, long_about = None)]
+#[clap(name="Q", about = "Pythagorean window", author, version, long_about = None)]
 struct Args {
     #[clap(long, short = 's', action=ArgAction::Set, help = "Set seed for world generation")]
     seed: Option<u64>,

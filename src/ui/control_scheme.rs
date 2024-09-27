@@ -2,7 +2,7 @@ use std::{collections::HashMap, default, sync::OnceLock};
 
 use crossterm::event::KeyCode;
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub enum ControlSchemeType {
     #[default]
     Default,
@@ -20,9 +20,9 @@ pub enum UiKey {
     MoveEast,
     MoveWest,
     MoveSouth,
+    Confirm,
     Quit,
 }
-
 
 impl ControlScheme {
     fn code_yields_key(&self, code: KeyCode, key: UiKey) -> bool {
@@ -33,7 +33,7 @@ impl ControlScheme {
         let keys = keys.unwrap();
         for key_try in keys {
             if key == *key_try {
-                return true
+                return true;
             }
         }
         false
@@ -42,13 +42,48 @@ impl ControlScheme {
     fn default_scheme() -> &'static ControlScheme {
         static SCHEME: OnceLock<ControlScheme> = OnceLock::new();
         SCHEME.get_or_init(|| {
-            let mut scheme = ControlScheme { controls: HashMap::new() };
-            scheme.controls.insert(KeyCode::Char('q'), vec![UiKey::Quit]);
-            scheme.controls.insert(KeyCode::Char('Q'), vec![UiKey::Quit]);
-            scheme.controls.insert(KeyCode::Char('w'), vec![UiKey::MoveNorth]);
-            scheme.controls.insert(KeyCode::Char('a'), vec![UiKey::MoveWest]);
-            scheme.controls.insert(KeyCode::Char('s'), vec![UiKey::MoveSouth]);
-            scheme.controls.insert(KeyCode::Char('d'), vec![UiKey::MoveEast]);
+            let mut scheme = ControlScheme {
+                controls: HashMap::new(),
+            };
+            scheme
+                .controls
+                .insert(KeyCode::Char('q'), vec![UiKey::Quit]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('Q'), vec![UiKey::Quit]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('w'), vec![UiKey::MoveNorth]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('a'), vec![UiKey::MoveWest]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('s'), vec![UiKey::MoveSouth]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('d'), vec![UiKey::MoveEast]);
+            scheme
+                .controls
+                .insert(KeyCode::Up, vec![UiKey::MoveNorth]);
+            scheme
+                .controls
+                .insert(KeyCode::Left, vec![UiKey::MoveWest]);
+            scheme
+                .controls
+                .insert(KeyCode::Down, vec![UiKey::MoveSouth]);
+            scheme
+                .controls
+                .insert(KeyCode::Right, vec![UiKey::MoveEast]);
+            scheme
+                .controls
+                .insert(KeyCode::Enter, vec![UiKey::Confirm, UiKey::YesToDialog]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('y'), vec![UiKey::YesToDialog]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('n'), vec![UiKey::NoToDialog]);
             scheme
         })
     }
@@ -57,7 +92,15 @@ impl ControlScheme {
 impl ControlSchemeType {
     pub fn code_yields_key(&self, code: KeyCode, key: UiKey) -> bool {
         match self {
-            ControlSchemeType::Default => ControlScheme::default_scheme()
-        }.code_yields_key(code, key)
+            ControlSchemeType::Default => ControlScheme::default_scheme(),
+        }
+        .code_yields_key(code, key)
+    }
+
+    pub fn keys_from_code(&self, code: KeyCode) -> Option<&'static Vec<UiKey>> {
+        match self {
+            ControlSchemeType::Default => ControlScheme::default_scheme(),
+        }
+        .controls.get(&code)
     }
 }

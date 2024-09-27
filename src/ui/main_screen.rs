@@ -12,13 +12,15 @@ use crate::{
     world::world::World,
 };
 
-use super::{dialogue_window::DialogueWindow, log_window::LogWindow, overworld_window::OverworldWindow, traits::Screen, ui_callback::UiCallbackPreset};
+use super::{
+    control_scheme::ControlSchemeType, dialogue_window::DialogueWindow, log_window::LogWindow, overworld_window::OverworldWindow, traits::Screen, ui_callback::UiCallbackPreset
+};
 
 pub struct MainScreen {
     state: ScreenState,
-    overworld_window: OverworldWindow,
-    dialogue_window: DialogueWindow,
-    log_window: LogWindow,
+    pub overworld_window: OverworldWindow,
+    pub dialogue_window: DialogueWindow,
+    pub log_window: LogWindow,
 }
 
 #[derive(Default)]
@@ -103,9 +105,10 @@ impl Screen for MainScreen {
     fn handle_key_events(
         &mut self,
         key_event: KeyEvent,
+        scheme: ControlSchemeType,
         world: &World,
     ) -> Option<UiCallbackPreset> {
         self.get_active_window_mut()
-            .handle_key_events(key_event, world)
+            .handle_key_events(key_event, scheme, world)
     }
 }

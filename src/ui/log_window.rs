@@ -1,10 +1,16 @@
 use anyhow::Result;
 use crossterm::event::KeyEvent;
-use ratatui::{layout::Rect, style::Style, text::{Line, Span}, widgets::{Block, Borders, Paragraph, Widget}, Frame};
+use ratatui::{
+    layout::Rect,
+    style::Style,
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph, Widget},
+    Frame,
+};
 
-use crate::world::world::World;
+use crate::{types::FormattedString, world::world::World};
 
-use super::{main_screen::MainScreen, traits::Screen, ui_callback::UiCallbackPreset};
+use super::{control_scheme::ControlSchemeType, main_screen::MainScreen, traits::Screen, ui_callback::UiCallbackPreset};
 
 pub struct LogWindow;
 
@@ -20,13 +26,13 @@ impl Screen for LogWindow {
     }
 
     fn render(&mut self, frame: &mut Frame, world: &World, area: Rect) -> Result<()> {
-        let mut spans = vec![];
-        for (s, style) in &world.log.contents {
-            spans.push(Span::styled(s, style.clone()));
+        let mut lines = vec![];
+        for string in &world.log.contents {
+            lines.push(Line::from(FormattedString::into_spans(string)));
         }
 
         let block = Block::default().borders(Borders::ALL).title("Log");
-        let p = Paragraph::new(vec![Line::from(spans)]).block(block);
+        let p = Paragraph::new(lines).block(block);
 
         frame.render_widget(p, area);
         Ok(())
@@ -40,6 +46,7 @@ impl Screen for LogWindow {
     fn handle_key_events(
         &mut self,
         _key_event: KeyEvent,
+        _scheme: ControlSchemeType,
         _world: &World,
     ) -> Option<UiCallbackPreset> {
         None

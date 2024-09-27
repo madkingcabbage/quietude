@@ -1,4 +1,7 @@
-use std::{ops::{AddAssign, Div, DivAssign, Mul, MulAssign}, time::Duration};
+use std::{
+    ops::{AddAssign, Div, DivAssign, Mul, MulAssign},
+    time::Duration,
+};
 
 use crate::rng::TickBasedRng;
 
@@ -22,13 +25,12 @@ pub fn product<T: From<i32> + MulAssign + Copy>(vals: &Vec<T>) -> T {
     product
 }
 
-pub fn insert_noise(vals: &mut Vec<&f64>, max_noise: f64, rng: &mut TickBasedRng) {
-
-}
+pub fn insert_noise(vals: &mut Vec<&f64>, max_noise: f64, rng: &mut TickBasedRng) {}
 
 pub fn frequency_to_period(f: u32) -> Duration {
     Duration::from_millis(((1.0 / f as f64) * 1000.0) as u64)
 }
+
 
 #[cfg(test)]
 mod test {
@@ -49,12 +51,18 @@ mod test {
         let vals_bits: Vec<_> = vals.iter().map(|val: &f64| val.to_bits()).collect();
         let vals_old_bits: Vec<_> = vals_old.iter().map(|val: &f64| val.to_bits()).collect();
 
-        assert!(vals_bits != vals_old_bits && vals[0] < 2.11 && vals[0] > 1.89 && vals[1] < 3.11 && vals[1] > 2.89);
-        
+        assert!(
+            vals_bits != vals_old_bits
+                && vals[0] < 2.11
+                && vals[0] > 1.89
+                && vals[1] < 3.11
+                && vals[1] > 2.89
+        );
+
         let mut vals = vec![0.0, 0.0];
         insert_noise(&mut vals, 0.5, &mut rng);
         assert!(vals[0] > -0.01 && vals[1] > -0.01);
-        
+
         let mut vals = vec![1.0, 1.0];
         insert_noise(&mut vals, 0.5, &mut rng);
         assert!(vals[0] < 1.01 && vals[1] < 1.01);

@@ -1,4 +1,8 @@
-use std::{fs::{create_dir_all, File}, io::BufWriter, path::PathBuf};
+use std::{
+    fs::{create_dir_all, File},
+    io::BufWriter,
+    path::PathBuf,
+};
 
 use anyhow::{anyhow, Result};
 use directories::ProjectDirs;
@@ -16,8 +20,10 @@ pub fn save<T: Serialize>(filename: &str, data: &T) -> Result<()> {
     Ok(())
 }
 
-pub fn load<T>(filename: &str) -> Result<T> 
-    where for<'a> T: Deserialize<'a> {
+pub fn load<T>(filename: &str) -> Result<T>
+where
+    for<'a> T: Deserialize<'a>,
+{
     let file = File::open(store_path(filename)?)?;
     let data: T = from_reader(file)?;
     Ok(data)

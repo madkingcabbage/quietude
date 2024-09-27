@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,12 @@ use crate::{
     types::{Coords3D, Message},
 };
 
-use super::{chunk::Chunk, log::Log};
+use super::{
+    chunk::Chunk,
+    conditions::{self, WorldCondition},
+    dialogue::{DialogueOutcome, DialogueTree},
+    log::Log,
+};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct World {
@@ -24,6 +29,8 @@ pub struct World {
     pub messages: Vec<Message>,
     next_entity_id: u32,
     pub log: Log,
+    pub dialogue_tree: Option<DialogueTree>,
+    conditions: Vec<WorldCondition>,
 }
 
 impl World {
@@ -51,6 +58,8 @@ impl World {
             pass_tick: false,
             next_entity_id,
             log: Log::new(),
+            dialogue_tree: None,
+            conditions: Vec::new(),
         })
     }
 
@@ -85,7 +94,7 @@ impl World {
 
     pub fn pass_time(&mut self, ticks: u32) -> Result<()> {
         for _ in 0..ticks {
-            for message in self.active_chunk.pass_tick(&mut self.rng)? {
+            for message in self.active_chunk.pass_tick(&mut self.rng, self.tick)? {
                 self.messages.push(message);
             }
         }
@@ -110,5 +119,91 @@ impl World {
             ..Default::default()
         };
         save(&savename, &world_clone);
+    }
+
+    pub fn has_condition(&self, condition: WorldCondition) -> bool {
+        for world_condition in &self.conditions {
+            if *world_condition == condition {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn add_condition(&mut self, condition: WorldCondition) {
+        self.conditions.push(condition);
+    }
+
+    pub fn remove_condition(&mut self, condition: WorldCondition) {
+        let mut should_remove = false;
+        let mut remove_index = 0;
+        for (i, world_condition) in self.conditions.iter().enumerate() {
+            if *world_condition == condition {
+                should_remove = true;
+                remove_index = i;
+                break;
+            }
+        }
+
+        if should_remove {
+            self.conditions.remove(remove_index);
+        }
+    }
+
+    fn activate_dialogue_outcome(&mut self, outcome: &DialogueOutcome) -> Result<()> {
+        let interlocutor_id = self.dialogue_tree.as_ref().unwrap().interlocutor_id;
+        let speaker_id = self.dialogue_tree.as_ref().unwrap().speaker_id;
+        match outcome {
+            DialogueOutcome::GiveInterlocutorItem(item) => {
+                self
+                    .active_chunk
+                    .get_entity_mut_from_id(interlocutor_id)
+                    .ok_or(anyhow!("interlocutor {} not found", interlocutor_id))?
+                    .give_item(item.clone())?;
+            }
+            DialogueOutcome::GiveInterlocutorSpecificItem(id) => {
+                self
+                    .active_chunk
+                    .get_entity_mut_from_id(interlocutor_id)
+                    .ok_or(anyhow!("interlocutor {} not found", interlocutor_id))?
+                    .give_specific_item(*id)?;
+            }
+            DialogueOutcome::TakeInterlocutorSpecificItem(id) => {
+                self
+                    .active_chunk
+                    .get_entity_mut_from_id(interlocutor_id)
+                    .ok_or(anyhow!("interlocutor {} not found", interlocutor_id))?
+                    .take_specific_item(*id)?;
+            }
+            DialogueOutcome::AddWorldCondition(condition) => {
+                self.add_condition(*condition);
+            }
+            DialogueOutcome::RemoveWorldCondition(condition) => {
+                self.remove_condition(*condition);
+            }
+        };
+
+        Ok(())
+    }
+
+    pub fn begin_dialogue(&mut self, speaker_id: u32, interlocutor_id: u32) -> Result<()> {
+        self.dialogue_tree = Some(DialogueTree::from_entity_name(speaker_id, interlocutor_id)?);
+        Ok(())
+    }
+
+    pub fn make_dialogue_choice(&mut self, index: usize) -> Result<()> {
+        let (outcomes, destination) = self.dialogue_tree
+            .as_ref()
+            .unwrap_or(Err(anyhow!("no dialogue tree currently active"))?)
+            .get_outcomes_and_destination_from_choice(index, self)?;
+
+        for outcome in &outcomes {
+            self.activate_dialogue_outcome(outcome)?;
+        }
+
+        self.dialogue_tree.as_mut().unwrap_or(Err(anyhow!("no dialogue tree currently active"))?)
+            .make_choice(&destination);
+        Ok(())
     }
 }

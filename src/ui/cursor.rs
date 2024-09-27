@@ -2,7 +2,7 @@ use crossterm::cursor::SetCursorStyle;
 
 use crate::types::Coords3D;
 
-pub type CursorStyle = SetCursorStyle; 
+pub type CursorStyle = SetCursorStyle;
 
 pub struct Cursor {
     pub coords: Coords3D,
