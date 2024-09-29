@@ -37,8 +37,10 @@ impl World {
     pub fn new(savename: &str) -> Result<Self> {
         let world = World::from_savename(savename);
         if world.is_ok() {
+            info!("Loading world from save: {savename}.");
             world
         } else {
+            info!("Could not load save {savename}. Creating new save.");
             Self::from_seed(rand::random())
         }
     }
@@ -64,7 +66,6 @@ impl World {
     }
 
     fn from_savename(savename: &str) -> Result<Self> {
-        info!("Loading world from save: {savename}.");
 
         let mut filename = String::from(savename);
         filename.push_str(".json");
