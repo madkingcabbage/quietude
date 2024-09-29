@@ -1,15 +1,17 @@
 use std::{io, time::Duration};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::event::{self, poll, Event, KeyCode, KeyEvent, MouseEvent};
-use log::info;
-use ratatui::prelude::CrosstermBackend;
+use log::{error, info};
+use ratatui::{prelude::CrosstermBackend, Frame};
 
 use crate::{
     store::save,
     types::{FormattedString, FormattedText, Message},
     ui::{
-        popup_message::{PopupMessage, PopupStyle}, tui::Tui, ui::Ui
+        popup_message::{PopupMessage, PopupStyle},
+        tui::Tui,
+        ui::Ui,
     },
     utils::frequency_to_period,
     world::{log::LogStyle, world::World},
@@ -45,21 +47,32 @@ impl App {
     pub fn run(&mut self) -> Result<()> {
         let writer = io::stdout();
         let _backend = CrosstermBackend::new(writer);
-        let mut _tui = Tui::new()?;
+        let mut tui =
+            Tui::new().unwrap_or_else(|e| panic!("{} while initializing terminal", e.to_string()));
         while self.running {
             if poll(frequency_to_period(
                 self.ui.get_current_refresh_rate() as u32
-            ))? {
-                match event::read()? {
-                    Event::Key(key) => self.handle_key_events(key)?,
-//                    Event::Mouse(mouse) => self.handle_mouse_events(mouse)?,
+            ))
+            .unwrap_or_else(|e| panic!("{} while polling", e.to_string()))
+            {
+                match event::read()
+                    .unwrap_or_else(|e| panic!("{} while reading events", e.to_string()))
+                {
+                    Event::Key(key) => self.handle_key_events(key).unwrap_or_else(|e| {
+                        error!("{} while handling key event {:?}", e.to_string(), key)
+                    }),
+                    //                    Event::Mouse(mouse) => self.handle_mouse_events(mouse)?,
                     _ => {}
                 }
             } else {
-                self.update()?;
+                self.update()
+                    .unwrap_or_else(|e| error!("{} during update", e.to_string()));
             }
+            tui.draw(&mut self.ui, &self.world)
+                .unwrap_or_else(|e| error!("{} while drawing to terminal", e.to_string()));
         }
 
+        Tui::restore().unwrap_or_else(|e| panic!("{} while restoring terminal", e.to_string()));
         Ok(())
     }
 
@@ -112,12 +125,20 @@ impl App {
     }
     */
 
+    pub fn render(ui: &mut Ui, world: &World, frame: &mut Frame) -> Result<()> {
+        ui.render(frame, world)?;
+        Ok(())
+    }
+
     fn update(&mut self) -> Result<()> {
         self.ui.update(&self.world)
     }
 
     fn quit(&mut self) -> Result<()> {
-        save(&self.world.savename.clone().unwrap(), &self.world)?;
-        Tui::restore()
+        if self.world.savename.is_some() {
+            save(&self.world.savename.clone().unwrap(), &self.world)?;
+        }
+        self.running = false;
+        Ok(())
     }
 }

@@ -46,33 +46,38 @@ impl Screen for DialogueWindow {
     }
 
     fn render(&mut self, frame: &mut Frame, world: &World, area: Rect) -> Result<()> {
-        let active_node = world
-            .dialogue_tree
-            .as_ref()
-            .unwrap_or(Err(anyhow!("no dialogue tree currently active"))?)
-            .get_active_node()?;
-        let speaker_dialogue = active_node.speaker_dialogue();
-        let choices = active_node.choices_text(world)?;
+        if world.dialogue_tree.as_ref().is_some() {
+            let active_node = world
+                .dialogue_tree
+                .as_ref()
+                .unwrap_or(Err(anyhow!("no dialogue tree currently active"))?)
+                .get_active_node()?;
+            let speaker_dialogue = active_node.speaker_dialogue();
+            let choices = active_node.choices_text(world)?;
 
-        let speaker_spans = FormattedString::into_spans(speaker_dialogue);
+            let speaker_spans = FormattedString::into_spans(speaker_dialogue);
 
-        let mut choice_lines = vec![];
-        for (i, choice) in choices.iter().enumerate() {
-            if i == self.active_choice {
-                let choice_spans = FormattedString::into_spans(choice);
-                choice_lines.push(Line::from(choice_spans).add_modifier(Modifier::REVERSED));
+            let mut choice_lines = vec![];
+            for (i, choice) in choices.iter().enumerate() {
+                if i == self.active_choice {
+                    let choice_spans = FormattedString::into_spans(choice);
+                    choice_lines.push(Line::from(choice_spans).add_modifier(Modifier::REVERSED));
+                }
             }
+
+            let mut lines = vec![Line::from(speaker_spans)];
+            lines.append(&mut choice_lines);
+
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .title(world.dialogue_tree.as_ref().unwrap().speaker_name.clone());
+
+            let p = Paragraph::new(lines).block(block);
+            frame.render_widget(p, area);
+        } else {
+            let p = Paragraph::default().block(Block::default().borders(Borders::ALL));
+            frame.render_widget(p, area);
         }
-
-        let mut lines = vec![Line::from(speaker_spans)];
-        lines.append(&mut choice_lines);
-
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title(world.dialogue_tree.as_ref().unwrap().speaker_name.clone());
-        let p = Paragraph::new(lines).block(block);
-
-        frame.render_widget(p, area);
         Ok(())
     }
 

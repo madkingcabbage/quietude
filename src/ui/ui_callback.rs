@@ -6,8 +6,11 @@ use crate::{
     world::constants::PLAYER_ID,
 };
 
+use super::ui::UiState;
+
 pub enum UiCallbackPreset {
     None,
+    NextScreen,
     CloseUiPopup,
     SetSavename(String),
     MovePlayer(Direction3D),
@@ -22,6 +25,12 @@ pub enum UiCallbackPreset {
 impl UiCallbackPreset {
     pub fn call(&self, app: &mut App) -> Result<Option<Message>> {
         match self {
+            UiCallbackPreset::NextScreen => {
+                if app.ui.state == UiState::Splash {
+                    app.ui.state = UiState::Main;
+                }
+                Ok(None)
+            }
             UiCallbackPreset::CloseUiPopup => {
                 app.ui.close_popup();
                 Ok(None)

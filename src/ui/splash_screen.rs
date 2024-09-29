@@ -143,6 +143,7 @@ impl Screen for SplashScreen {
         match self.state {
             State::Start => self.sweep(),
             State::Wait => self.unsweep(),
+            State::Done => return Some(UiCallbackPreset::NextScreen),
             _ => {}
         }
 
@@ -332,6 +333,7 @@ mod test {
             title_color: Color::default(),
             title: TITLES[1],
             tick: 0,
+            refresh_rate: 60,
         };
 
         assert_eq!(sweep.to_string(), "abc\ndef\nghi\n");

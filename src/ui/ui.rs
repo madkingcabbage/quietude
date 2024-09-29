@@ -26,7 +26,7 @@ pub struct Ui {
     cursor: Cursor,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Eq)]
 pub enum UiState {
     #[default]
     Splash,
@@ -76,13 +76,6 @@ impl Ui {
         }
 
         self.get_active_screen_mut().handle_key_events(key, scheme, world)
-    }
-
-    fn get_active_window(&mut self) -> Option<&mut dyn Screen> {
-        match self.state {
-            UiState::Splash => None,
-            UiState::Main => Some(self.main_screen.get_active_window_mut()),
-        }
     }
 
     fn get_active_screen_mut(&mut self) -> &mut dyn Screen {

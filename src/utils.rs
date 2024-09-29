@@ -44,27 +44,33 @@ mod test {
 
     #[test]
     fn test_insert_noise() {
-        let mut vals = vec![2.0, 3.0];
+        let mut vals = vec![&2.0, &3.0];
         let vals_old = vals.clone();
         let mut rng = TickBasedRng::new(0, 0);
         insert_noise(&mut vals, 0.1, &mut rng);
-        let vals_bits: Vec<_> = vals.iter().map(|val: &f64| val.to_bits()).collect();
-        let vals_old_bits: Vec<_> = vals_old.iter().map(|val: &f64| val.to_bits()).collect();
+        let vals_bits: Vec<_> = vals.iter().map(|val: &&f64| val.to_bits()).collect();
+        let vals_old_bits: Vec<_> = vals_old.iter().map(|val: &&f64| val.to_bits()).collect();
 
         assert!(
             vals_bits != vals_old_bits
-                && vals[0] < 2.11
-                && vals[0] > 1.89
-                && vals[1] < 3.11
-                && vals[1] > 2.89
+                && *vals[0] < 2.11
+                && *vals[0] > 1.89
+                && *vals[1] < 3.11
+                && *vals[1] > 2.89
         );
 
-        let mut vals = vec![0.0, 0.0];
+        let mut vals = vec![&0.0, &0.0];
         insert_noise(&mut vals, 0.5, &mut rng);
-        assert!(vals[0] > -0.01 && vals[1] > -0.01);
+        assert!(*vals[0] > -0.01 && *vals[1] > -0.01);
 
-        let mut vals = vec![1.0, 1.0];
+        let mut vals = vec![&1.0, &1.0];
         insert_noise(&mut vals, 0.5, &mut rng);
-        assert!(vals[0] < 1.01 && vals[1] < 1.01);
+        assert!(*vals[0] < 1.01 && *vals[1] < 1.01);
+    }
+
+    #[test]
+    fn test_frequency_to_period() {
+        let result = frequency_to_period(60);
+        assert!(result == Duration::from_millis(16));
     }
 }

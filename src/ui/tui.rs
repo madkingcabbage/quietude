@@ -13,6 +13,10 @@ use ratatui::{
     Terminal,
 };
 
+use crate::{app::App, world::world::World};
+
+use super::ui::Ui;
+
 pub struct Tui(Terminal<CrosstermBackend<Stdout>>);
 
 impl Tui {
@@ -21,6 +25,12 @@ impl Tui {
         let mut tui = Self(terminal);
         tui.init()?;
         Ok(tui)
+    }
+
+    pub fn draw(&mut self, ui: &mut Ui, world: &World) -> Result<()> {
+        let mut result = Ok(());
+        self.0.draw(|f| result = App::render(ui, world, f))?;
+        result
     }
 
     fn init(&mut self) -> Result<Self> {

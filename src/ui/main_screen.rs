@@ -2,6 +2,7 @@ use std::default;
 
 use anyhow::Result;
 use crossterm::event::KeyEvent;
+use log::error;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     Frame,
@@ -13,7 +14,8 @@ use crate::{
 };
 
 use super::{
-    control_scheme::ControlSchemeType, dialogue_window::DialogueWindow, log_window::LogWindow, overworld_window::OverworldWindow, traits::Screen, ui_callback::UiCallbackPreset
+    control_scheme::ControlSchemeType, dialogue_window::DialogueWindow, log_window::LogWindow,
+    overworld_window::OverworldWindow, traits::Screen, ui_callback::UiCallbackPreset,
 };
 
 pub struct MainScreen {
@@ -89,11 +91,15 @@ impl Screen for MainScreen {
             ])
             .split(screen[0]);
 
-        self.dialogue_window.render(frame, world, screen[1])?;
+        self.dialogue_window
+            .render(frame, world, screen[1])
+            .unwrap_or_else(|e| error!("{} while rendering dialogue window", e.to_string()));
         self.overworld_window
-            .render(frame, world, overworld_log_chunks[0])?;
+            .render(frame, world, overworld_log_chunks[0])
+            .unwrap_or_else(|e| error!("{} while rendering log window", e.to_string()));
         self.log_window
-            .render(frame, world, overworld_log_chunks[1])?;
+            .render(frame, world, overworld_log_chunks[1])
+            .unwrap_or_else(|e| error!("{} while rendering log window", e.to_string()));
 
         Ok(())
     }
