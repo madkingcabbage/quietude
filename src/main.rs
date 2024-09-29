@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use anyhow::Result;
+use clap::{ArgAction, Parser};
 use log::{debug, error, info, trace, warn, LevelFilter};
 use log4rs::{
     append::{
@@ -12,15 +13,17 @@ use log4rs::{
     filter::threshold::ThresholdFilter,
     Config,
 };
-use quietude::app::App;
+use quietude::{app::App, ui::errors::install_hooks};
 
+#[derive(Parser)]
 #[clap(name="Q", about = "Pythagorean window", author, version, long_about = None)]
 struct Args {
     #[clap(long, short = 's', action=ArgAction::Set, help = "Set seed for world generation")]
-    seed: Option<u64>,
+    seed: Option<u32>,
     #[clap(long, short = 'l', action=ArgAction::Set, help = "Load save")]
     savename: Option<String>,
 }
+
 
 fn main() -> Result<()> {
     let stderr = ConsoleAppender::builder().target(Target::Stderr).build();
@@ -45,9 +48,13 @@ fn main() -> Result<()> {
         )
         .unwrap();
 
+    let args = Args::parse();
+
+    install_hooks()?;
+
     log4rs::init_config(config)?;
 
-    App::new(args.seed, args.savename).run()?;
+    App::new(args.seed, args.savename)?.run()?;
 
     Ok(())
 }

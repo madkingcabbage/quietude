@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     constants::{MAX_COORDS, MIN_COORDS},
     rng::TickBasedRng,
-    types::{Coords3D, Direction3D, FormattedString, GenericStyle, Message},
+    types::{Coords3D, Direction3D, FormattedString, FormattedText, GenericStyle, Message},
 };
 
 use super::{
@@ -173,28 +173,20 @@ impl Chunk {
                     .entities
                     .get(&actee_id)
                     .unwrap_or(Err(anyhow!("entity {actee_id} not found for interaction"))?);
-                self.flee(id, &actee.coords, rng)
+                self.flee(id, &actee.coords.clone(), rng)
             }
             Action::Talk(actee_id) => {
-                let actee = self
-                    .entities
-                    .get(&actee_id)
-                    .unwrap_or(Err(anyhow!("entity {actee_id} not found for interaction"))?);
-                actor.talk_to(actee)
+                self.entity_talk(id, *actee_id)
             }
             Action::Fight(actee_id) => {
-                let actee = self
-                    .entities
-                    .get(&actee_id)
-                    .unwrap_or(Err(anyhow!("entity {actee_id} not found for interaction"))?);
-                actor.fight(actee)    
+                self.entity_fight(id, *actee_id)    
             }
             Action::Approach(actee_id) => {
                 let actee = self
                     .entities
                     .get(&actee_id)
                     .unwrap_or(Err(anyhow!("entity {actee_id} not found for interaction"))?);
-                self.approach(id, &actee.coords, rng)
+                self.approach(id, &actee.coords.clone(), rng)
             }
             Action::Solo(_) => Err(anyhow!(
                 "entity tried to take a solo action in a cooperative action context"
@@ -231,6 +223,19 @@ impl Chunk {
             ));
         }
 
+        Ok(None)
+    }
+
+    fn entity_talk(&mut self, actor_id: u32, actee_id: u32) -> Result<Option<Message>> {
+        let coords = self
+            .get_entity_from_id(actor_id)
+            .unwrap_or(Err(anyhow!("entity {actor_id} not found"))?)
+            .coords
+            .clone();
+        Ok(Some(Message::Log(FormattedString::from(&Some(coords), FormattedText::new("hey", LogStyle::Default)))))
+    }
+
+    fn entity_fight(&mut self, actor_id: u32, actee_id: u32) -> Result<Option<Message>> {
         Ok(None)
     }
 

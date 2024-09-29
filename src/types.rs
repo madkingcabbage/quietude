@@ -188,6 +188,65 @@ impl Coords3D {
     }
 }
 
+impl PartialOrd for Coords3D {
+    fn lt(&self, other: &Self) -> bool {
+        if self.2 < other.2 {
+            return true;
+        } else if self.2 > other.2 {
+            return false;
+        }
+
+        if self.1 < other.1 {
+            return true;
+        } else if self.1 > other.1 {
+            return false;
+        }
+
+        if self.0 < other.0 {
+            return true;
+        } else if self.0 > other.0 {
+            return false;
+        }
+
+        false
+
+    }
+    
+    fn gt(&self, other: &Self) -> bool {
+        if self.2 > other.2 {
+            return true;
+        } else if self.2 < other.2 {
+            return false;
+        }
+
+        if self.1 > other.1 {
+            return true;
+        } else if self.1 < other.1 {
+            return false;
+        }
+
+        if self.0 > other.0 {
+            return true;
+        } else if self.0 < other.0 {
+            return false;
+        }
+
+        false
+    }
+
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.2.partial_cmp(&other.2) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        match self.1.partial_cmp(&other.1) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.0.partial_cmp(&other.0)
+    }
+}
+
 impl Direction3D {
     pub fn invert(&mut self) {
         *self = match self {
@@ -327,6 +386,7 @@ mod test {
         assert!(distance > 9.95 && distance < 10.05);
     }
 
+    #[test]
     fn test_intersects() {
         let start = Coords3D(0, 0, 0);
         let end = Coords3D(5, 10, 0);
@@ -351,5 +411,16 @@ mod test {
         ];
 
         assert_eq!(intersections, line_segment.intersects());
+    }
+
+    #[test]
+    fn test_partial_cmp_coords_3d() {
+        assert!(Coords3D(5, 5, 1) > Coords3D(6, 6, 0));
+        assert!(Coords3D(5, 1, 8) > Coords3D(6, 0, 8));
+        assert!(Coords3D(7, 9, 2) > Coords3D(6, 9, 2));
+        
+        assert!(!(Coords3D(5, 5, 1) < Coords3D(6, 6, 0)));
+        assert!(!(Coords3D(5, 1, 8) < Coords3D(6, 0, 8)));
+        assert!(!(Coords3D(7, 9, 2) < Coords3D(6, 9, 2)));
     }
 }

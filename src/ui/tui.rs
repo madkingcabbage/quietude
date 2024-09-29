@@ -1,6 +1,7 @@
 use std::io::{stdout, Stdout};
 
 use anyhow::Result;
+use crossterm::event::DisableMouseCapture;
 use ratatui::{
     crossterm::{
         cursor,
@@ -34,7 +35,7 @@ impl Tui {
     }
 
     pub fn restore() -> Result<()> {
-        execute!(stdout(), cursor::Show, LeaveAlternateScreen)?;
+        execute!(stdout(), cursor::Show, DisableMouseCapture, LeaveAlternateScreen)?;
         disable_raw_mode()?;
         Ok(())
     }

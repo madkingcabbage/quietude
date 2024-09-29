@@ -7,11 +7,9 @@ use ratatui::prelude::CrosstermBackend;
 
 use crate::{
     store::save,
-    tui::Tui,
     types::{FormattedString, FormattedText, Message},
     ui::{
-        popup_message::{PopupMessage, PopupStyle},
-        ui::Ui,
+        popup_message::{PopupMessage, PopupStyle}, tui::Tui, ui::Ui
     },
     utils::frequency_to_period,
     world::{log::LogStyle, world::World},
@@ -54,7 +52,7 @@ impl App {
             ))? {
                 match event::read()? {
                     Event::Key(key) => self.handle_key_events(key)?,
-                    Event::Mouse(mouse) => self.handle_mouse_events(mouse)?,
+//                    Event::Mouse(mouse) => self.handle_mouse_events(mouse)?,
                     _ => {}
                 }
             } else {
@@ -94,6 +92,7 @@ impl App {
         Ok(())
     }
 
+    /*
     fn handle_mouse_events(&mut self, mouse: MouseEvent) -> Result<()> {
         if let Some(callback) = self.ui.handle_mouse_events(mouse, &self.world) {
             match callback.call(self) {
@@ -111,6 +110,7 @@ impl App {
         }
         Ok(())
     }
+    */
 
     fn update(&mut self) -> Result<()> {
         self.ui.update(&self.world)

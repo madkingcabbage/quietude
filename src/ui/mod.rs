@@ -12,3 +12,5 @@ pub mod ui;
 pub mod ui_callback;
 mod utils;
 mod widgets;
+pub mod errors;
+pub mod tui;
