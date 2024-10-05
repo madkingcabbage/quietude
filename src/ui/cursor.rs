@@ -7,7 +7,7 @@ pub type CursorStyle = SetCursorStyle;
 pub struct Cursor {
     pub coords: Coords3D,
     pub style: CursorStyle,
-    pub visible: bool,
+    pub is_visible: bool,
 }
 
 impl Cursor {
@@ -29,7 +29,7 @@ impl Default for Cursor {
         Cursor {
             coords: Coords3D(0, 0, 0),
             style: CursorStyle::SteadyBlock,
-            visible: false,
+            is_visible: false,
         }
     }
 }

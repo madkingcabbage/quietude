@@ -1,16 +1,20 @@
 use anyhow::Result;
 use crossterm::event::KeyEvent;
-use ratatui::{layout::Rect, style::Style, text::{Line, Span}, widgets::{Block, Borders, Padding, Paragraph}, Frame};
+use ratatui::{layout::Rect, style::{Modifier, Style, Stylize}, text::{Line, Span}, widgets::{Block, Borders, Padding, Paragraph}, Frame};
 
 use crate::{constants::{MAX_COORDS, MIN_COORDS}, types::{Coords3D, Direction3D}, world::{entity::Entity, world::World}};
 
-use super::{control_scheme::{ControlSchemeType, UiKey}, traits::Screen, ui_callback::UiCallbackPreset};
+use super::{control_scheme::{ControlSchemeType, UiKey}, cursor::Cursor, traits::Screen, ui_callback::UiCallbackPreset};
 
-pub struct OverworldWindow;
+pub struct OverworldWindow {
+    pub cursor: Cursor,
+}
 
 impl OverworldWindow {
     pub fn new() -> Self {
-        OverworldWindow {}
+        OverworldWindow {
+            cursor: Cursor::default(),
+        }
     }
 
     pub fn entity_span(entity: &Entity) -> Span<'static> {
@@ -51,6 +55,17 @@ impl Screen for OverworldWindow {
         }
 
         spans.sort_by(|(coords1, _), (coords2, _)| coords1.partial_cmp(coords2).unwrap());
+
+        if self.cursor.is_visible {
+            let mut index = 0;
+            for (i, (coords, span)) in spans.iter().enumerate() {
+                if &self.cursor.coords == coords {
+                    index = i;
+                }
+            }
+
+            spans[index].1 = spans[index].1.clone().add_modifier(Modifier::REVERSED);
+        }
 
         let mut lines = vec![];
         let mut line = vec![];

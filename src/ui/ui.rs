@@ -23,7 +23,6 @@ pub struct Ui {
     popup_input: TextArea<'static>,
     popup_messages: Vec<PopupMessage>,
     pub scheme: ControlSchemeType,
-    cursor: Cursor,
 }
 
 #[derive(Default, PartialEq, Eq)]
@@ -49,7 +48,6 @@ impl Ui {
             popup_input: TextArea::default(),
             popup_messages: vec![],
             scheme: ControlSchemeType::default(),
-            cursor: Cursor::default(),
         }
     }
 
@@ -62,7 +60,7 @@ impl Ui {
     }
 
     pub fn move_cursor(&mut self, direction: &Direction3D) {
-        self.cursor.coords.move_in_direction(direction);
+        self.main_screen.overworld_window.cursor.coords.move_in_direction(direction);
     }
 
     pub fn move_dialogue_highlight(&mut self, direction: &Direction1D, max_choice: usize) {
