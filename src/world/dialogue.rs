@@ -3,7 +3,7 @@ use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    store::load,
+    store::load_profile,
     types::{Color, FormattedString},
 };
 
@@ -58,7 +58,7 @@ pub enum DialogueStyle {
 
 impl DialogueTree {
     pub fn from_entity_name(speaker_id: u32, interlocutor_id: u32) -> Result<Self> {
-        let (speaker_name, nodes) = load(&format!("{speaker_id}.json"))?;
+        let (speaker_name, nodes) = load_profile(&format!("{speaker_id}.json"))?;
         Ok(DialogueTree {
             speaker_name,
             nodes,

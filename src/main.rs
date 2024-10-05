@@ -1,8 +1,6 @@
-#![allow(unused)]
-
 use anyhow::Result;
 use clap::{ArgAction, Parser};
-use log::{debug, error, info, trace, warn, LevelFilter};
+use log::LevelFilter;
 use log4rs::{
     append::{
         console::{ConsoleAppender, Target},

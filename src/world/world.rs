@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::Path};
 
 use anyhow::{anyhow, Result};
 use log::info;
@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     rng::TickBasedRng,
-    store::{load, save},
-    types::{Coords3D, Message},
+    store::{load_profile, save_profile},
+    types::{Coords3D, Coords4D, Message},
 };
 
 use super::{
@@ -22,7 +22,7 @@ pub struct World {
     seed: u32,
     pub savename: Option<String>,
     pub active_chunk: Chunk,
-    chunk_coords: Coords3D,
+    chunk_coords: Coords4D,
     tick: u32,
     rng: TickBasedRng,
     pub pass_tick: bool,
@@ -48,12 +48,12 @@ impl World {
     pub fn from_seed(seed: u32) -> Result<Self> {
         info!("Generating new world from seed: {seed}.");
         let mut next_entity_id = 0;
-        let active_chunk = Chunk::from_seed(Coords3D(0, 0, 0), seed, &mut next_entity_id)?;
+        let active_chunk = Chunk::from_seed(Coords4D(0, 0, 0, 0), seed, &mut next_entity_id)?;
         Ok(World {
             seed,
             savename: None,
             active_chunk,
-            chunk_coords: Coords3D(0, 0, 0),
+            chunk_coords: Coords4D(0, 0, 0, 0),
             tick: 0,
             rng: TickBasedRng::new(seed, 0),
             messages: vec![],
@@ -65,24 +65,35 @@ impl World {
         })
     }
 
-    fn from_savename(savename: &str) -> Result<Self> {
+    pub fn add_chunk(&mut self, chunk: Chunk) -> Result<()> {
+        let filename = format!(
+            "world/{},{},{},{}.json",
+            self.chunk_coords.0, self.chunk_coords.1, self.chunk_coords.2, self.chunk_coords.3
+        );
+        info!("saving chunk to {filename}");
+        save_profile(&filename, &self.active_chunk)?;
+        
+        self.active_chunk = chunk;
+        Ok(())
+    }
 
+    fn from_savename(savename: &str) -> Result<Self> {
         let mut filename = String::from(savename);
         filename.push_str(".json");
 
-        load(&filename)
+        load_profile(&filename)
     }
 
-    pub fn change_to_chunk(&mut self, coords: Coords3D) -> Result<()> {
+    pub fn change_to_chunk(&mut self, coords: Coords4D) -> Result<()> {
         let filename = format!(
-            "world/{},{},{}.json",
-            self.chunk_coords.0, self.chunk_coords.1, self.chunk_coords.2
+            "world/{},{},{},{}.json",
+            self.chunk_coords.0, self.chunk_coords.1, self.chunk_coords.2, self.chunk_coords.3
         );
         info!("saving chunk to {filename}");
-        save(&filename, &self.active_chunk)?;
+        save_profile(&filename, &self.active_chunk)?;
 
-        let filename = format!("world/{},{}.json", coords.0, coords.1);
-        self.active_chunk = if let Ok(chunk_try) = load(&filename) {
+        let filename = format!("world/{},{},{},{}.json", coords.0, coords.1, coords.2, coords.3);
+        self.active_chunk = if let Ok(chunk_try) = load_profile(&filename) {
             info!("loading chunk from {filename}");
             chunk_try
         } else {
@@ -119,7 +130,7 @@ impl World {
             next_entity_id: self.next_entity_id,
             ..Default::default()
         };
-        save(&savename, &world_clone);
+        save_profile(&savename, &world_clone);
     }
 
     pub fn has_condition(&self, condition: WorldCondition) -> bool {

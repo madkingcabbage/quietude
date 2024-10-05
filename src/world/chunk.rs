@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     constants::{MAX_COORDS, MIN_COORDS},
     rng::TickBasedRng,
-    types::{Coords3D, Direction3D, FormattedString, FormattedText, GenericStyle, Message},
+    types::{Coords3D, Coords4D, Direction3D, FormattedString, FormattedText, GenericStyle, Message},
 };
 
 use super::{
@@ -21,7 +21,7 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn from_seed(coords: Coords3D, seed: u32, next_entity_id: &mut u32) -> Result<Self> {
+    pub fn from_seed(coords: Coords4D, seed: u32, next_entity_id: &mut u32) -> Result<Self> {
         Ok(Default::default())
     }
 

@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use crate::{ui::popup_message::PopupStyle, world::log::LogStyle};
 
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+pub struct Coords4D(pub i32, pub i32, pub i32, pub i32);
+
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Coords3D(pub i32, pub i32, pub i32);
 
 #[derive(Default, PartialEq)]

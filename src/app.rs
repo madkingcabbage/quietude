@@ -6,7 +6,7 @@ use log::{error, info};
 use ratatui::{prelude::CrosstermBackend, Frame};
 
 use crate::{
-    store::save,
+    store::save_profile,
     types::{FormattedString, FormattedText, Message},
     ui::{
         popup_message::{PopupMessage, PopupStyle},
@@ -136,7 +136,7 @@ impl App {
 
     fn quit(&mut self) -> Result<()> {
         if self.world.savename.is_some() {
-            save(&self.world.savename.clone().unwrap(), &self.world)?;
+            save_profile(&self.world.savename.clone().unwrap(), &self.world)?;
         }
         self.running = false;
         Ok(())

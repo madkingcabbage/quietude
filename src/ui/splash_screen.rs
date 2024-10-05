@@ -43,7 +43,7 @@ pub enum Direction {
     SouthWest,
 }
 
-const TITLES: [&'static str; 3] = ["quietude", "quintessence", "quark"];
+const TITLES: [&'static str; 5] = ["quietude", "quintessence", "quark", "queer", "qualm"];
 const COLORS: [Color; 5] = [
     Color::Red,
     Color::Yellow,

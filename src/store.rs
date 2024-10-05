@@ -12,7 +12,7 @@ use serde_json::{from_reader, to_writer};
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 
-pub fn save<T: Serialize>(filename: &str, data: &T) -> Result<()> {
+pub fn save_profile<T: Serialize>(filename: &str, data: &T) -> Result<()> {
     let file = File::create(store_path(filename)?)?;
     assert!(file.metadata()?.is_file());
     let buffer = BufWriter::new(file);
@@ -20,11 +20,28 @@ pub fn save<T: Serialize>(filename: &str, data: &T) -> Result<()> {
     Ok(())
 }
 
-pub fn load<T>(filename: &str) -> Result<T>
+pub fn load_profile<T>(filename: &str) -> Result<T>
 where
     for<'a> T: Deserialize<'a>,
 {
     let file = File::open(store_path(filename)?)?;
+    let data: T = from_reader(file)?;
+    Ok(data)
+}
+
+pub fn save<T: Serialize>(path: &PathBuf, data: &T) -> Result<()> {
+    let file = File::create(path)?;
+    assert!(file.metadata()?.is_file());
+    let buffer = BufWriter::new(file);
+    to_writer(buffer, data)?;
+    Ok(())
+}
+
+pub fn load<T>(path: &PathBuf) -> Result<T>
+where
+    for<'a> T: Deserialize<'a>,
+{
+    let file = File::open(path)?;
     let data: T = from_reader(file)?;
     Ok(data)
 }
@@ -50,10 +67,10 @@ mod tests {
 
     #[test]
     fn test_save_load() {
-        let result = save("test.json", &World::default());
+        let result = save_profile("test.json", &World::default());
         assert!(result.is_ok());
 
-        let world = load("test.json");
+        let world = load_profile("test.json");
         assert!(result.is_ok());
 
         let world_some: World = world.unwrap();

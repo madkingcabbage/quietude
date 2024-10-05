@@ -1,8 +1,8 @@
 use anyhow::Result;
 use crossterm::event::KeyEvent;
-use ratatui::{layout::Rect, style::Style, text::{Line, Span}, widgets::{Block, Borders, Paragraph}, Frame};
+use ratatui::{layout::Rect, style::Style, text::{Line, Span}, widgets::{Block, Borders, Padding, Paragraph}, Frame};
 
-use crate::{types::Direction3D, world::{entity::Entity, world::World}};
+use crate::{constants::{MAX_COORDS, MIN_COORDS}, types::{Coords3D, Direction3D}, world::{entity::Entity, world::World}};
 
 use super::{control_scheme::{ControlSchemeType, UiKey}, traits::Screen, ui_callback::UiCallbackPreset};
 
@@ -14,8 +14,13 @@ impl OverworldWindow {
     }
 
     pub fn entity_span(entity: &Entity) -> Span<'static> {
+        Span::styled("T", Style::default())
+    }
+
+    pub fn void_span() -> Span<'static> {
         Span::styled(".", Style::default())
     }
+
 }
 
 impl Screen for OverworldWindow {
@@ -25,23 +30,45 @@ impl Screen for OverworldWindow {
 
     fn render(&mut self, frame: &mut Frame, world: &World, area: Rect) -> Result<()> {
         let mut spans = vec![];
+        let mut used_coords = vec![];
         for (_, entity) in world.active_chunk.get_entities() {
             spans.push((entity.coords, OverworldWindow::entity_span(entity)));
+            used_coords.push(entity.coords);
+        }
+
+        for y in MIN_COORDS.1..=MAX_COORDS.1 {
+            for x in MIN_COORDS.0..=MAX_COORDS.0 {
+                let mut has_object = false;
+                for z in MIN_COORDS.2..=MAX_COORDS.2 {
+                    if used_coords.contains(&Coords3D(x, y, z)) {
+                        has_object = true;
+                    }
+                }
+                if !has_object {
+                    spans.push((Coords3D(x, y, MIN_COORDS.2), OverworldWindow::void_span()));
+                }
+            }
         }
 
         spans.sort_by(|(coords1, _), (coords2, _)| coords1.partial_cmp(coords2).unwrap());
 
-        let spans: Vec<_> = spans
-            .iter()
-            .map(|(_, entity)| entity.clone())
-            .collect();
-
-        let line = Line::from(spans);
+        let mut lines = vec![];
+        let mut line = vec![];
+        let mut current_y = MIN_COORDS.1;
+        for (coords, span) in &spans {
+            if coords.1 != current_y {
+                current_y = coords.1;
+                lines.push(Line::from(line.clone()));
+                line = vec![];
+            }
+            line.push(span.clone());
+        }
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .title("Overworld");
-        let p = Paragraph::new(line).block(block);
+            .title("Overworld")
+            .padding(Padding::top(((area.height - (MAX_COORDS.1 - MIN_COORDS.1) as u16) / 2) - 1));
+        let p = Paragraph::new(lines).block(block).centered();
 
         frame.render_widget(p, area);
 
