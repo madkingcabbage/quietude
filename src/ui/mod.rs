@@ -1,6 +1,6 @@
 mod constants;
 pub mod control_scheme;
-mod cursor;
+pub mod cursor;
 mod dialogue_window;
 mod log_window;
 mod main_screen;

@@ -81,7 +81,7 @@ impl Screen for DialogueWindow {
         Ok(())
     }
 
-    fn get_refresh_rate(&self) -> u16 {
+    fn refresh_rate(&self) -> u16 {
         60
     }
 

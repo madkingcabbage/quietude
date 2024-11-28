@@ -15,6 +15,8 @@ pub enum LogStyle {
     #[default]
     Default,
     Emphasis(Color),
+    Attribute,
+    Value,
 }
 
 impl Log {
@@ -33,6 +35,11 @@ impl Log {
 
 impl From<LogStyle> for Style {
     fn from(value: LogStyle) -> Self {
-        Style::new()
+        match value {
+            LogStyle::Default => Style::new(),
+            LogStyle::Emphasis(color) => todo!(),
+            LogStyle::Attribute =>Style::default().fg(ratatui::style::Color::Yellow).bg(ratatui::style::Color::DarkGray),
+            LogStyle::Value => Style::default().fg(ratatui::style::Color::Cyan),
+        }
     }
 }

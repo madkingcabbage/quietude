@@ -1,13 +1,11 @@
-use std::{fmt::Debug, path::Path};
+use std::{fmt::Debug, fs::{DirBuilder, File}, path::{Path, PathBuf}, u32};
 
 use anyhow::{anyhow, Result};
 use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    rng::TickBasedRng,
-    store::{load_profile, save_profile},
-    types::{Coords3D, Coords4D, Message},
+    constants::{SAVE_EXTENSION, WORLD_DIR_NAME}, rng::TickBasedRng, store::{load_profile, save, save_profile}, types::{Coords3D, Coords4D, Message}
 };
 
 use super::{
@@ -22,7 +20,7 @@ pub struct World {
     seed: u32,
     pub savename: Option<String>,
     pub active_chunk: Chunk,
-    chunk_coords: Coords4D,
+    pub chunk_coords: Coords4D,
     tick: u32,
     rng: TickBasedRng,
     pub pass_tick: bool,
@@ -47,7 +45,7 @@ impl World {
 
     pub fn from_seed(seed: u32) -> Result<Self> {
         info!("Generating new world from seed: {seed}.");
-        let mut next_entity_id = 0;
+        let mut next_entity_id = u32::MAX / 2;
         let active_chunk = Chunk::from_seed(Coords4D(0, 0, 0, 0), seed, &mut next_entity_id)?;
         Ok(World {
             seed,
@@ -67,11 +65,23 @@ impl World {
 
     pub fn add_chunk(&mut self, chunk: Chunk) -> Result<()> {
         let filename = format!(
-            "world/{},{},{},{}.json",
-            self.chunk_coords.0, self.chunk_coords.1, self.chunk_coords.2, self.chunk_coords.3
+            "world/{}{SAVE_EXTENSION}",
+            self.chunk_coords
         );
         info!("saving chunk to {filename}");
         save_profile(&filename, &self.active_chunk)?;
+        
+        self.active_chunk = chunk;
+        Ok(())
+    }
+
+    pub fn add_chunk_in_dir(&mut self, project_dir: &str, chunk: Chunk) -> Result<()> {
+        let filename = format!(
+            "{project_dir}{WORLD_DIR_NAME}{}{SAVE_EXTENSION}",
+            self.chunk_coords
+        );
+        info!("saving chunk to {filename}");
+        save(&PathBuf::from(&filename), &self.active_chunk)?;
         
         self.active_chunk = chunk;
         Ok(())
@@ -86,13 +96,12 @@ impl World {
 
     pub fn change_to_chunk(&mut self, coords: Coords4D) -> Result<()> {
         let filename = format!(
-            "world/{},{},{},{}.json",
-            self.chunk_coords.0, self.chunk_coords.1, self.chunk_coords.2, self.chunk_coords.3
+            "world/{coords}.json",
         );
         info!("saving chunk to {filename}");
         save_profile(&filename, &self.active_chunk)?;
 
-        let filename = format!("world/{},{},{},{}.json", coords.0, coords.1, coords.2, coords.3);
+        let filename = format!("world/{}.json", coords.to_str());
         self.active_chunk = if let Ok(chunk_try) = load_profile(&filename) {
             info!("loading chunk from {filename}");
             chunk_try

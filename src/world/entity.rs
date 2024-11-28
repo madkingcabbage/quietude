@@ -1,11 +1,16 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{write, Display},
+};
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     rng::TickBasedRng,
-    types::{Coords3D, Direction3D, FormattedString, GenericStyle, LineSegment3D, Message},
+    types::{
+        Coords3D, Direction3D, FormattedString, FormattedText, GenericStyle, LineSegment3D, Message,
+    },
     utils::{avg, insert_noise, product},
 };
 
@@ -13,7 +18,8 @@ use super::{
     action::{Action, SoloAction},
     chunk::Chunk,
     item::{Item, ItemType},
-    log::LogStyle, traits::VisibilityModifier,
+    log::LogStyle,
+    traits::VisibilityModifier,
 };
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
@@ -28,21 +34,58 @@ pub enum EntityType {
 
 pub static mut NEXT_ID: u32 = 0;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Entity {
     pub entity_type: EntityType,
-    pub name: Vec<FormattedString<LogStyle>>,
+    pub name: FormattedString<LogStyle>,
     pub description: FormattedString<LogStyle>,
-    pub can_move: bool,
-    pub has_agency: bool,
+    pub is_rooted: Option<bool>,
+    pub has_agency: Option<bool>,
     pub allegiance: Option<String>,
-    pub focus: Option<Focus>,
-    pub opacity: Opacity,
-    pub size: Size,
+    pub opacity: Option<Opacity>,
+    pub size: Option<Size>,
     pub coords: Coords3D,
     pub inventory: Vec<Item>,
-    inventory_spaces: usize,
+    pub focus: Option<Focus>,
+    pub inventory_spaces: usize,
 }
+
+const IS_ROOTED_DEFAULT: bool = true;
+const HAS_AGENCY_DEFAULT: bool = false;
+
+#[derive(Clone)]
+pub enum EntityAttribute {
+    Text(EntityAttributeText),
+    Choice(EntityAttributeChoice),
+}
+
+#[derive(Clone)]
+pub enum EntityAttributeText {
+    Name,
+    Description,
+}
+
+#[derive(Clone)]
+pub enum EntityAttributeChoice {
+    Type,
+    IsRooted,
+    HasAgency,
+    Allegiance,
+    Opacity,
+    Size,
+}
+
+const ATTRIBUTE_COUNT: usize = 8;
+const ATTRIBUTE_ORDER: [EntityAttribute; ATTRIBUTE_COUNT] = [
+    EntityAttribute::Choice(EntityAttributeChoice::Type),
+    EntityAttribute::Text(EntityAttributeText::Name),
+    EntityAttribute::Text(EntityAttributeText::Description),
+    EntityAttribute::Choice(EntityAttributeChoice::IsRooted),
+    EntityAttribute::Choice(EntityAttributeChoice::HasAgency),
+    EntityAttribute::Choice(EntityAttributeChoice::Allegiance),
+    EntityAttribute::Choice(EntityAttributeChoice::Opacity),
+    EntityAttribute::Choice(EntityAttributeChoice::Size),
+];
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Focus {
@@ -60,15 +103,17 @@ pub enum Opinion {
     Fear,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Size {
     Small,
+    #[default]
     Medium,
     Large,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Opacity {
+    #[default]
     Solid,
     Dense,
     MostlyTransparent,
@@ -76,7 +121,19 @@ pub enum Opacity {
 }
 
 impl Entity {
-    pub fn find_new_focus(&self, id: u32, chunk: &Chunk, rng: &mut TickBasedRng, tick: u32) -> Focus {
+    pub fn new(coords: &Coords3D) -> Self {
+        let mut entity = Entity::default();
+        entity.coords = coords.clone();
+        entity
+    }
+
+    pub fn find_new_focus(
+        &self,
+        id: u32,
+        chunk: &Chunk,
+        rng: &mut TickBasedRng,
+        tick: u32,
+    ) -> Focus {
         let mut weights = HashMap::new();
         for (entity_id, entity) in chunk.get_entities() {
             if !self.can_see(chunk, entity) {
@@ -110,6 +167,98 @@ impl Entity {
                 chunk.get_entity_from_id(max_weight_id.unwrap()).unwrap(),
                 tick,
             )
+        }
+    }
+
+    pub fn get_attribute_value(&self, attr: &EntityAttribute) -> FormattedString<LogStyle> {
+        match attr {
+            EntityAttribute::Text(attr_text) => match attr_text {
+                EntityAttributeText::Name => self.name.clone(),
+                EntityAttributeText::Description => self.description.clone(),
+            },
+            EntityAttribute::Choice(attr_choice) => match attr_choice {
+                EntityAttributeChoice::Type => FormattedString::from(
+                    &None,
+                    FormattedText::new(&format!("{}", self.entity_type), LogStyle::Value),
+                ),
+                EntityAttributeChoice::IsRooted => FormattedString::from(
+                    &None, 
+                    FormattedText::new(&format!("{}", self.is_rooted()), LogStyle::Value),
+                ),
+                EntityAttributeChoice::HasAgency => FormattedString::from(
+                    &None,
+                    FormattedText::new(&format!("{}", self.has_agency()), LogStyle::Value)
+                ),
+                EntityAttributeChoice::Allegiance => FormattedString::from(
+                    &None,
+                    FormattedText::new(&format!("{}", self.allegiance()), LogStyle::Value)
+                ),
+                EntityAttributeChoice::Opacity => FormattedString::from(
+                    &None,
+                    FormattedText::new(&format!("{}", self.opacity()), LogStyle::Value)
+                ),
+                EntityAttributeChoice::Size => FormattedString::from(
+                    &None,
+                    FormattedText::new(&format!("{}", self.size()), LogStyle::Value)
+                ),
+            },
+        }
+    }
+
+    pub fn attribute_count(&self) -> usize {
+        let mut count = 0;
+        for attr in EntityAttribute::attribute_order() {
+            if self.has_attribute(attr) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn has_attribute(&self, attr: &EntityAttribute) -> bool {
+        match attr {
+            EntityAttribute::Text(attr_text) => match attr_text {
+                EntityAttributeText::Name => true,
+                EntityAttributeText::Description => true,
+            },
+            EntityAttribute::Choice(attr_choice) => match attr_choice {
+                EntityAttributeChoice::Type => true,
+                EntityAttributeChoice::IsRooted => {
+                    if let Some(_) = self.is_rooted {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                EntityAttributeChoice::HasAgency => {
+                    if let Some(_) = self.has_agency {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                EntityAttributeChoice::Allegiance => {
+                    if let Some(_) = self.allegiance {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                EntityAttributeChoice::Opacity => {
+                    if let Some(_) = self.opacity {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                EntityAttributeChoice::Size => {
+                    if let Some(_) = self.size {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            },
         }
     }
 
@@ -217,6 +366,34 @@ impl Entity {
         Opinion::Neutral
     }
 
+    pub fn opacity(&self) -> Opacity {
+        self.opacity.as_ref().unwrap_or(&Opacity::default()).clone()
+    }
+
+    pub fn size(&self) -> Size {
+        self.size.as_ref().unwrap_or(&Size::default()).clone()
+    }
+
+    pub fn allegiance(&self) -> String {
+        self.allegiance
+            .as_ref()
+            .unwrap_or(&String::from("None"))
+            .clone()
+    }
+
+    pub fn has_agency(&self) -> bool {
+        self.has_agency.unwrap_or(HAS_AGENCY_DEFAULT)
+    }
+
+    pub fn is_rooted(&self) -> bool {
+        self.is_rooted.unwrap_or(IS_ROOTED_DEFAULT)
+    }
+}
+
+impl EntityAttribute {
+    pub fn attribute_order() -> &'static [EntityAttribute; ATTRIBUTE_COUNT] {
+        &ATTRIBUTE_ORDER
+    }
 }
 
 impl VisibilityModifier for Opacity {
@@ -242,7 +419,7 @@ impl VisibilityModifier for Size {
 
 impl VisibilityModifier for Entity {
     fn visibility_reduction_factor(&self) -> f64 {
-        self.opacity.visibility_reduction_factor() * self.size.visibility_reduction_factor()
+        self.opacity().visibility_reduction_factor() * self.size().visibility_reduction_factor()
     }
 }
 
@@ -255,6 +432,55 @@ impl Opinion {
             Self::Enemy => 0.6,
             Self::ArchNemesis => 0.8,
             Self::Fear => 1.0,
+        }
+    }
+}
+
+impl Display for EntityType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Display for Opacity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Display for Size {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Display for EntityAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EntityAttribute::Text(attr_text) => write!(f, "{attr_text}"),
+            EntityAttribute::Choice(attr_choice) => write!(f, "{attr_choice}"),
+        }
+    }
+}
+
+impl Display for EntityAttributeText {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EntityAttributeText::Name => write!(f, "Name"),
+            EntityAttributeText::Description => write!(f, "Description"),
+        }
+    }
+}
+
+impl Display for EntityAttributeChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EntityAttributeChoice::Type => write!(f, "Type"),
+            EntityAttributeChoice::IsRooted => write!(f, "Is rooted"),
+            EntityAttributeChoice::HasAgency => write!(f, "Has agency"),
+            EntityAttributeChoice::Allegiance => write!(f, "Allegiance"),
+            EntityAttributeChoice::Opacity => write!(f, "Opacity"),
+            EntityAttributeChoice::Size => write!(f, "Size"),
         }
     }
 }

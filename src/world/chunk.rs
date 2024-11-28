@@ -33,7 +33,7 @@ impl Chunk {
         }
         for id in &ids {
             if let Some(entity) = self.get_entity_from_id(*id) {
-                if entity.has_agency {
+                if entity.has_agency() {
                     if let Some(message) = self.npc_turn(*id, rng, tick)? {
                         messages.push(message);
                     }
@@ -60,7 +60,7 @@ impl Chunk {
             return Ok(());
         };
 
-        if movee.can_move && mover.can_move {
+        if movee.is_rooted() && mover.is_rooted() {
             self.get_entity_mut_from_coords(&coords_try).unwrap().coords = mover.coords.clone();
             self.get_entity_mut_from_id(id).unwrap().coords = coords_try;
         }
@@ -363,8 +363,18 @@ impl Chunk {
         let index = rng.rand() as usize % possible_directions.len();
         let direction = possible_directions[index];
 
-        self.move_entity(id, &direction);
+        self.move_entity(id, &direction)?;
 
         Ok(None)
+    }
+
+    pub fn overwrite_entity(&mut self, new_entity: Entity, coords: &Coords3D, next_id: u32) -> u32 {
+        if let Some(entity) = self.get_entity_mut_from_coords(coords) {
+            *entity = new_entity;
+            next_id
+        } else {
+            self.entities.insert(next_id, new_entity);
+            next_id + 1
+        }
     }
 }

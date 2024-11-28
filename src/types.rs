@@ -1,3 +1,5 @@
+use std::fmt::{write, Display};
+
 use ratatui::{
     style::Style,
     text::{Line, Span},
@@ -83,6 +85,18 @@ pub struct LineSegment2D {
 pub struct LineSegment3D {
     pub start: Coords3D,
     pub end: Coords3D,
+}
+
+impl Coords4D {
+    pub fn to_str(&self) -> String {
+        String::from(format!("{},{},{},{}", self.0, self.1, self.2, self.3))
+    }
+}
+
+impl Display for Coords4D {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{},{},{}", self.0, self.1, self.2, self.3)
+    }
 }
 
 impl Coords3D {
@@ -334,11 +348,23 @@ impl LineSegment3D {
     }
 }
 
-impl<T: Into<Style> + Clone> FormattedString<T> {
+impl<T: Into<Style> + Clone + Default> FormattedString<T> {
     pub fn from(origin: &Option<Coords3D>, text: FormattedText<T>) -> Self {
         FormattedString {
             origin: origin.clone(),
             texts: vec![text],
+        }
+    }
+
+    pub fn insert(&mut self, index: usize, text: FormattedText<T>) {
+        self.texts.insert(index, text);
+    }
+
+    pub fn raw(origin: &Option<Coords3D>, s: &str) -> Self {
+        let texts = vec![FormattedText { s: String::from(s), style: <T>::default() }];
+        FormattedString {
+            origin: origin.clone(),
+            texts,
         }
     }
 
@@ -348,6 +374,28 @@ impl<T: Into<Style> + Clone> FormattedString<T> {
 
     pub fn origin(&self) -> &Option<Coords3D> {
         &self.origin
+    }
+
+    pub fn truncate(&self, max_chars: usize) -> FormattedString<T> {
+        let mut char_count = 0;
+        let mut string = FormattedString {
+            texts: vec![],
+            origin: self.origin,
+        };
+
+        for text in &self.texts {
+            char_count += text.s.len();
+            if char_count < max_chars {
+                string.texts.push(text.clone());
+            } else {
+                let difference = char_count - max_chars;
+                let text = FormattedText::new(&text.s[0..=text.s.len() - difference].to_string(), text.style.clone());
+                string.texts.push(text);
+                break;
+            }
+        }
+
+        string
     }
 
     pub fn into_spans(s: &FormattedString<T>) -> Vec<Span> {
@@ -366,6 +414,14 @@ impl<T: Into<Style> + Clone> FormattedText<T> {
         FormattedText {
             s: String::from(s),
             style,
+        }
+    }
+
+    pub fn truncate(&self, max_chars: usize) -> FormattedText<T> {
+        if self.s.len() < max_chars as usize {
+            FormattedText::new(&self.s, self.style.clone())
+        } else {
+            FormattedText::new(&self.s[0..=max_chars], self.style.clone())
         }
     }
 }

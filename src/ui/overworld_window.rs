@@ -90,7 +90,7 @@ impl Screen for OverworldWindow {
         Ok(())
     }
 
-    fn get_refresh_rate(&self) -> u16 {
+    fn refresh_rate(&self) -> u16 {
         60
     }
 
@@ -111,7 +111,6 @@ impl Screen for OverworldWindow {
                 UiKey::MoveEast => return Some(UiCallbackPreset::MovePlayer(Direction3D::East)),
                 UiKey::MoveWest => return Some(UiCallbackPreset::MovePlayer(Direction3D::West)),
                 UiKey::MoveSouth => return Some(UiCallbackPreset::MovePlayer(Direction3D::South)),
-                UiKey::Quit => todo!(),
                 _ => {}
             }
         }

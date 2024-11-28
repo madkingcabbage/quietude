@@ -104,8 +104,8 @@ impl Screen for MainScreen {
         Ok(())
     }
 
-    fn get_refresh_rate(&self) -> u16 {
-        self.get_active_window().get_refresh_rate()
+    fn refresh_rate(&self) -> u16 {
+        self.get_active_window().refresh_rate()
     }
 
     fn handle_key_events(

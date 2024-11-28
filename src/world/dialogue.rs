@@ -1,15 +1,17 @@
+use std::path::PathBuf;
+
 use anyhow::{anyhow, Result};
 use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    store::load_profile,
+    store::{load_profile, save},
     types::{Color, FormattedString},
 };
 
 use super::{conditions::WorldCondition, item::ItemType, world::World};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct DialogueTree {
     nodes: Vec<DialogueNode>,
     active_node_name: String,
@@ -18,7 +20,7 @@ pub struct DialogueTree {
     pub interlocutor_id: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct DialogueNode {
     name: String,
     speaker_dialogue: FormattedString<DialogueStyle>,
@@ -50,13 +52,28 @@ pub enum DialogueOutcome {
     RemoveWorldCondition(WorldCondition),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub enum DialogueStyle {
+    #[default]
     Default,
     Emphasis(Color),
 }
 
 impl DialogueTree {
+    pub fn new(speaker_name: &str) -> DialogueTree {
+        DialogueTree {
+            nodes: vec![],
+            active_node_name: String::from("start"),
+            speaker_name: speaker_name.to_string(),
+            speaker_id: 0,
+            interlocutor_id: 0,
+        }
+    }
+
+    pub fn save(&self, path: PathBuf) -> Result<()> {
+        save(&path, &(&self.speaker_name, &self.nodes))
+    }
+
     pub fn from_entity_name(speaker_id: u32, interlocutor_id: u32) -> Result<Self> {
         let (speaker_name, nodes) = load_profile(&format!("{speaker_id}.json"))?;
         Ok(DialogueTree {
@@ -101,6 +118,18 @@ impl DialogueNode {
         let text = choices.iter().map(|choice| choice.text.clone()).collect::<Vec<_>>();
         Ok(text)
     }
+    
+    pub fn choices_text_unconditional(
+        &self,
+    ) -> Result<Vec<FormattedString<DialogueStyle>>> {
+        let choices = self.choices_unconditional();
+        let text = choices.iter().map(|choice| choice.text.clone()).collect::<Vec<_>>();
+        Ok(text)
+    }
+
+    pub fn choices_count_unconditional(&self) -> usize {
+        self.choices.len()
+    }
 
     fn choices(
         &self,
@@ -114,6 +143,12 @@ impl DialogueNode {
         }
 
         Ok(choices)
+    }
+
+    fn choices_unconditional(
+        &self,
+    ) -> &Vec<DialogueChoice> {
+        &self.choices
     }
 
     pub fn speaker_dialogue(&self) -> &FormattedString<DialogueStyle> {

@@ -1,50 +1,33 @@
-use std::rc::Rc;
-
 use anyhow::Result;
 use crossterm::event::KeyEvent;
+use quietude::{types::{Direction1D, Direction3D}, world::world::World};
 use ratatui::Frame;
 use tui_textarea::TextArea;
 
-use crate::{
-    types::{Coords3D, Direction1D, Direction3D},
-    world::world::World,
-};
-
-use super::{
-    control_scheme::ControlSchemeType, cursor::Cursor, main_screen::MainScreen,
-    popup_message::PopupMessage, splash_screen::SplashScreen, traits::Screen,
-    ui_callback::UiCallbackPreset,
-};
+use super::{chunk_editor::ChunkEditor, control_scheme::ControlSchemeType, dialogue_editor::DialogueEditor, popup_message::PopupMessage, traits::Screen, ui_callback::UiCallbackPreset};
 
 pub struct Ui {
     pub state: UiState,
-    pub splash_screen: SplashScreen,
-    pub main_screen: MainScreen,
+    pub chunk_editor: ChunkEditor,
+    pub dialogue_editor: DialogueEditor,
     popup_input: TextArea<'static>,
     popup_messages: Vec<PopupMessage>,
     pub scheme: ControlSchemeType,
 }
 
-#[derive(Default, PartialEq, Eq)]
+#[derive(Default)]
 pub enum UiState {
     #[default]
-    Splash,
-    Main,
-}
-
-pub enum UiWindow {
-    Main,
+    Chunk,
     Dialogue,
-    Log,
 }
 
 impl Ui {
     pub fn new() -> Self {
-        let ui_windows = vec![UiWindow::Main, UiWindow::Dialogue, UiWindow::Log];
         Self {
             state: UiState::default(),
-            splash_screen: SplashScreen::new(),
-            main_screen: MainScreen::new(),
+            chunk_editor: ChunkEditor::new(),
+            dialogue_editor: DialogueEditor::new(),
             popup_input: TextArea::default(),
             popup_messages: vec![],
             scheme: ControlSchemeType::default(),
@@ -60,11 +43,13 @@ impl Ui {
     }
 
     pub fn move_cursor(&mut self, direction: &Direction3D) {
-        self.main_screen.overworld_window.cursor.coords.move_in_direction(direction);
+        self.chunk_editor.cursor.coords.move_in_direction(direction);
     }
 
-    pub fn move_dialogue_highlight(&mut self, direction: &Direction1D, max_choice: usize) {
-        self.main_screen.dialogue_window.move_highlight(*direction, max_choice);
+    pub fn move_dialogue_highlight(&mut self, direction: &Direction1D) -> Result<()> {
+        self.dialogue_editor.move_highlight(direction)?;
+
+        Ok(())
     }
 
     pub fn handle_key_events(&mut self, key: KeyEvent, world: &World) -> Option<UiCallbackPreset> {
@@ -78,15 +63,15 @@ impl Ui {
 
     fn get_active_screen_mut(&mut self) -> &mut dyn Screen {
         match self.state {
-            UiState::Splash => &mut self.splash_screen,
-            UiState::Main => &mut self.main_screen,
+            UiState::Chunk => &mut self.chunk_editor,
+            UiState::Dialogue => &mut self.dialogue_editor,
         }
     }
 
     fn get_active_screen(&self) -> &dyn Screen {
         match self.state {
-            UiState::Splash => &self.splash_screen,
-            UiState::Main => &self.main_screen,
+            UiState::Chunk => &self.chunk_editor,
+            UiState::Dialogue => &self.dialogue_editor,
         }
     }
 

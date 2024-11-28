@@ -1,0 +1,2 @@
+store the next valid id and chunks in separate files
+actually why are we even bothering to save at startup?

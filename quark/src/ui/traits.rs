@@ -2,9 +2,8 @@ use std::fmt::{Debug, Formatter};
 
 use anyhow::Result;
 use crossterm::event::KeyEvent;
+use quietude::world::world::World;
 use ratatui::{layout::Rect, Frame};
-
-use crate::world::world::World;
 
 use super::{control_scheme::ControlSchemeType, ui_callback::UiCallbackPreset};
 

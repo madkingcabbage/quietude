@@ -38,7 +38,7 @@ impl Screen for LogWindow {
         Ok(())
     }
 
-    fn get_refresh_rate(&self) -> u16 {
+    fn refresh_rate(&self) -> u16 {
         60
     }
 

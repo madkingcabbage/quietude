@@ -1,19 +1,20 @@
 use std::{
-    fs::{create_dir_all, File},
+    fs::{create_dir_all, DirBuilder, File},
     io::BufWriter,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{anyhow, Result};
 use directories::ProjectDirs;
 use include_dir::{include_dir, Dir};
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::{from_reader, to_writer};
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 
-pub fn save_profile<T: Serialize>(filename: &str, data: &T) -> Result<()> {
-    let file = File::create(store_path(filename)?)?;
+pub fn save_profile<T: Serialize>(path: &str, data: &T) -> Result<()> {
+    let file = File::create(store_path(path)?)?;
     assert!(file.metadata()?.is_file());
     let buffer = BufWriter::new(file);
     to_writer(buffer, data)?;
@@ -30,10 +31,16 @@ where
 }
 
 pub fn save<T: Serialize>(path: &PathBuf, data: &T) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        if !Path::new(parent).exists() {
+            DirBuilder::new().recursive(true).create(&path)?;
+        }
+    }
     let file = File::create(path)?;
     assert!(file.metadata()?.is_file());
     let buffer = BufWriter::new(file);
     to_writer(buffer, data)?;
+    trace!("Saved data at {}", path.to_str().unwrap());
     Ok(())
 }
 

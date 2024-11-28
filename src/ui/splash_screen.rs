@@ -43,7 +43,7 @@ pub enum Direction {
     SouthWest,
 }
 
-const TITLES: [&'static str; 5] = ["quietude", "quintessence", "quark", "queer", "qualm"];
+const TITLES: [&'static str; 6] = ["quietude", "quintessence", "quark", "queer", "qualm", "quebec"];
 const COLORS: [Color; 5] = [
     Color::Red,
     Color::Yellow,
@@ -297,7 +297,7 @@ impl Screen for SplashScreen {
         Ok(())
     }
 
-    fn get_refresh_rate(&self) -> u16 {
+    fn refresh_rate(&self) -> u16 {
         self.refresh_rate
     }
 }
