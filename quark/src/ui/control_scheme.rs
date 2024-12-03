@@ -93,6 +93,12 @@ impl ControlScheme {
                 .controls
                 .insert(KeyCode::Char('x'), vec![UiKey::Save]);
             scheme
+                .controls
+                .insert(KeyCode::Char('e'), vec![UiKey::EditEntity]);
+            scheme
+                .controls
+                .insert(KeyCode::Esc, vec![UiKey::ExitSubmenu]);
+            scheme
         })
     }
 }

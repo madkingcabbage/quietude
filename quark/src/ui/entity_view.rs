@@ -4,18 +4,19 @@ use quietude::{
     types::{Coords3D, Direction1D, FormattedString, FormattedText},
     world::{
         chunk::Chunk,
-        entity::{Entity, EntityAttribute},
+        entity::{Entity, EntityAttribute, EntityAttributeText},
         log::LogStyle,
         world::World,
     },
 };
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Stylize},
     text::Line,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
+use tui_textarea::TextArea;
 
 use super::{
     control_scheme::{ControlSchemeType, UiKey},
@@ -25,8 +26,9 @@ use super::{
 
 pub struct EntityView {
     entity: Option<Entity>,
-    state: EntityViewState,
+    pub state: EntityViewState,
     cursor_pos: usize,
+    text_attr_editor: TextAttributeEditor,
 }
 
 #[derive(Default)]
@@ -37,23 +39,35 @@ pub enum EntityViewState {
     FormattedStringInput,
 }
 
+pub struct TextAttributeEditor {
+    pub attr: EntityAttributeText,
+    pub text_area: TextArea<'static>,
+}
+
 impl EntityView {
     pub fn new() -> Self {
         EntityView {
             entity: None,
             state: EntityViewState::default(),
             cursor_pos: 0,
+            text_attr_editor: TextAttributeEditor {
+                attr: EntityAttributeText::default(),
+                text_area: TextArea::default(),
+            },
         }
     }
 
     pub fn finish(&mut self) -> Result<Entity> {
-        let entity = self.entity.clone().ok_or(anyhow!("tried to get ownership of empty entity"));
+        let entity = self
+            .entity
+            .clone()
+            .ok_or(anyhow!("tried to get ownership of empty entity"));
         self.entity = None;
 
         entity
     }
 
-    pub fn edit_entity(&mut self, coords: Coords3D, chunk: &Chunk) {
+    pub fn start_editor(&mut self, coords: Coords3D, chunk: &Chunk) {
         self.cursor_pos = 0;
         self.entity = Some(
             chunk
@@ -61,6 +75,36 @@ impl EntityView {
                 .unwrap_or(&Entity::new(&coords))
                 .clone(),
         );
+    }
+
+    pub fn start_attribute_editor(
+        &mut self,
+        attr: EntityAttribute,
+        default: &FormattedString<LogStyle>,
+    ) {
+        match attr {
+            EntityAttribute::Text(attr) => {
+                self.text_attr_editor = TextAttributeEditor {
+                    attr,
+                    text_area: TextArea::from(vec![format!("{default}")]),
+                };
+                self.state = EntityViewState::FormattedStringInput;
+            }
+            EntityAttribute::Choice(entity_attribute_choice) => {
+                todo!();
+            }
+        }
+    }
+
+    pub fn set_text_attribute(&mut self, attr: EntityAttributeText, value: &str) {
+        match attr {
+            EntityAttributeText::Name => {
+                self.entity.as_mut().unwrap().name = FormattedString::raw(&None, value)
+            }
+            EntityAttributeText::Description => {
+                self.entity.as_mut().unwrap().description = FormattedString::raw(&None, value)
+            }
+        }
     }
 
     pub fn index_to_attribute_lookup(
@@ -90,7 +134,10 @@ impl EntityView {
         for attr in EntityAttribute::attribute_order() {
             if entity.has_attribute(attr) {
                 let (key, value) = EntityView::index_to_attribute_lookup(index, entity)?;
-                list.push((FormattedText::new(&format!("{key}"), LogStyle::Value), value));
+                list.push((
+                    FormattedText::new(&format!("{key}"), LogStyle::Attribute),
+                    value,
+                ));
                 index += 1;
             }
         }
@@ -105,7 +152,15 @@ impl EntityView {
                 }
             }
             Direction1D::Down => {
-                if self.cursor_pos < self.entity.as_ref().unwrap_or_else(|| panic!("tried to move cursor without actively editing entity")).attribute_count() {
+                if self.cursor_pos
+                    < self
+                        .entity
+                        .as_ref()
+                        .unwrap_or_else(|| {
+                            panic!("tried to move cursor without actively editing entity")
+                        })
+                        .attribute_count()
+                {
                     self.cursor_pos += 1;
                 }
             }
@@ -131,9 +186,9 @@ impl Screen for EntityView {
         for (attr, value) in list {
             let attr = attr.truncate(16);
             let mut s = value.truncate(32);
-            let spacer = FormattedText::new(": ", LogStyle::default());
+            let spacer = FormattedText::new(": ", LogStyle::Attribute);
             s.insert(0, attr);
-            s.insert(0, spacer);
+            s.insert(1, spacer);
             strings.push(s.clone());
         }
 
@@ -148,12 +203,57 @@ impl Screen for EntityView {
         }
 
         let block = Block::default().borders(Borders::ALL).title(format!(
-            "{}, {}, {}",
-            entity.coords.0, entity.coords.1, entity.coords.2
+            "{}", entity.coords
         ));
 
         let p = Paragraph::new(lines).block(block);
+        frame.render_widget(Clear, area);
         frame.render_widget(p, area);
+
+        match self.state {
+            EntityViewState::Main => {}
+            EntityViewState::StringChoice => {
+                todo!();
+            }
+            EntityViewState::FormattedStringInput => {
+                let layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Length(4),
+                        Constraint::Min(52),
+                        Constraint::Length(4),
+                    ])
+                    .split(area);
+                let block_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(2),
+                        Constraint::Min(36),
+                        Constraint::Length(2),
+                    ])
+                    .split(layout[1]);
+                let layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Length(5),
+                        Constraint::Min(50),
+                        Constraint::Length(5),
+                    ])
+                    .split(area);
+                let text_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Length(3),
+                        Constraint::Min(34),
+                        Constraint::Length(3),
+                    ])
+                    .split(layout[1]);
+                let b = Block::bordered().title(format!("{}", self.text_attr_editor.attr));
+                frame.render_widget(Clear, block_layout[1]);
+                frame.render_widget(b, block_layout[1]);
+                frame.render_widget(&self.text_attr_editor.text_area, text_layout[1]);
+            }
+        }
 
         Ok(())
     }
@@ -166,8 +266,35 @@ impl Screen for EntityView {
     ) -> Option<UiCallbackPreset> {
         let keys = match scheme.keys_from_code(key_event.code) {
             Some(keys) => keys,
-            None => return None,
+            None => &vec![],
         };
+
+        match self.state {
+            EntityViewState::Main => {}
+            EntityViewState::StringChoice => {
+                todo!();
+            }
+            EntityViewState::FormattedStringInput => {
+                for key in keys {
+                    if *key == UiKey::ExitSubmenu {
+                        let lines = self
+                            .text_attr_editor
+                            .text_area
+                            .lines()
+                            .iter()
+                            .map(|line| line.clone())
+                            .collect();
+                        return Some(UiCallbackPreset::ExitStringEditor(
+                            self.text_attr_editor.attr.clone(),
+                            lines,
+                        ));
+                    }
+                }
+
+                self.text_attr_editor.text_area.input(key_event);
+                return None;
+            }
+        }
 
         for key in keys {
             match key {
@@ -178,7 +305,13 @@ impl Screen for EntityView {
                     return Some(UiCallbackPreset::MoveEntityViewCursor(Direction1D::Down))
                 }
                 UiKey::Confirm => {
-                    let (key, value) = EntityView::index_to_attribute_lookup(self.cursor_pos, &self.entity.as_ref().unwrap()).unwrap_or_else(|e| panic!("{} while matching cursor index to attribute", e.to_string()));
+                    let (key, value) = EntityView::index_to_attribute_lookup(
+                        self.cursor_pos,
+                        &self.entity.as_ref().unwrap(),
+                    )
+                    .unwrap_or_else(|e| {
+                        panic!("{} while matching cursor index to attribute", e.to_string())
+                    });
                     return Some(UiCallbackPreset::EditEntityAttribute(key.clone(), value));
                 }
                 UiKey::ExitSubmenu => {
@@ -192,6 +325,6 @@ impl Screen for EntityView {
     }
 
     fn refresh_rate(&self) -> u16 {
-        todo!()
+        60
     }
 }

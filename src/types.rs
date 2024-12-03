@@ -99,6 +99,12 @@ impl Display for Coords4D {
     }
 }
 
+impl Display for Coords3D {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}, {}, {}", self.0, self.1, self.2)
+    }
+}
+
 impl Coords3D {
     /// This approach uses the Pythagorean theorem to find the distance between
     /// the x and z coordinates, but doesn't account for diagonal movement
@@ -348,6 +354,13 @@ impl LineSegment3D {
     }
 }
 
+impl<T> Display for FormattedString<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s: String = self.texts.iter().map(|text| text.s.clone()).collect();
+        write!(f, "{s}")
+    }
+}
+
 impl<T: Into<Style> + Clone + Default> FormattedString<T> {
     pub fn from(origin: &Option<Coords3D>, text: FormattedText<T>) -> Self {
         FormattedString {
@@ -382,6 +395,8 @@ impl<T: Into<Style> + Clone + Default> FormattedString<T> {
             texts: vec![],
             origin: self.origin,
         };
+        
+        let max_chars = max_chars - 3;
 
         for text in &self.texts {
             char_count += text.s.len();
@@ -391,6 +406,7 @@ impl<T: Into<Style> + Clone + Default> FormattedString<T> {
                 let difference = char_count - max_chars;
                 let text = FormattedText::new(&text.s[0..=text.s.len() - difference].to_string(), text.style.clone());
                 string.texts.push(text);
+                string.texts.push(FormattedText::new("...", Default::default()));
                 break;
             }
         }
@@ -418,10 +434,13 @@ impl<T: Into<Style> + Clone> FormattedText<T> {
     }
 
     pub fn truncate(&self, max_chars: usize) -> FormattedText<T> {
+        let max_chars = max_chars - 3;
         if self.s.len() < max_chars as usize {
             FormattedText::new(&self.s, self.style.clone())
         } else {
-            FormattedText::new(&self.s[0..=max_chars], self.style.clone())
+            let mut s = String::from(&self.s[0..=max_chars]);
+            s.push_str("...");
+            FormattedText::new(&s, self.style.clone())
         }
     }
 }

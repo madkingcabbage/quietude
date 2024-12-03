@@ -1,6 +1,5 @@
 use std::{
-    collections::HashMap,
-    fmt::{write, Display},
+    collections::HashMap, default, fmt::{write, Display}
 };
 
 use anyhow::{anyhow, Result};
@@ -59,8 +58,9 @@ pub enum EntityAttribute {
     Choice(EntityAttributeChoice),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Default)]
 pub enum EntityAttributeText {
+    #[default]
     Name,
     Description,
 }

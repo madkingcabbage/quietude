@@ -30,7 +30,7 @@ impl ChunkEditor {
     }
 
     pub fn edit_entity(&mut self, coords: Coords3D, chunk: &Chunk) -> Result<()> {
-        self.entity_view.edit_entity(coords, chunk);
+        self.entity_view.start_editor(coords, chunk);
         self.state = ChunkEditorState::EntityView;
 
         Ok(())
@@ -107,22 +107,22 @@ impl Screen for ChunkEditor {
             let layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
-                    Constraint::Max(7),
-                    Constraint::Length(120),
-                    Constraint::Max(7),
+                    Constraint::Length(14),
+                    Constraint::Min(60),
+                    Constraint::Length(14),
                 ])
                 .split(area);
 
             let layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Max(14),
-                    Constraint::Length(60),
-                    Constraint::Max(7),
+                    Constraint::Length(7),
+                    Constraint::Min(30),
+                    Constraint::Length(7),
                 ])
                 .split(layout[1]);
 
-            return self.entity_view.render(frame, world, layout[1])
+            return self.entity_view.render(frame, world, layout[1]);
         }
 
         Ok(())

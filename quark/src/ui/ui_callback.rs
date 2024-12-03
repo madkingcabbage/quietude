@@ -1,17 +1,18 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use quietude::{types::{Coords3D, Direction1D, Direction3D, FormattedString, FormattedText}, world::{entity::EntityAttribute, log::LogStyle}};
+use quietude::{types::{Coords3D, Direction1D, Direction3D, FormattedString, FormattedText}, world::{entity::{EntityAttribute, EntityAttributeText}, log::LogStyle}};
 
 use crate::{app::App, store::save_project, types::Message};
 
-use super::{chunk_editor::ChunkEditorState, dialogue_editor::DialogueEditorState, popup_message::PopupStyle};
+use super::{chunk_editor::ChunkEditorState, dialogue_editor::DialogueEditorState, entity_view::EntityViewState, popup_message::PopupStyle};
 
 pub enum UiCallbackPreset {
     MoveChunkEditorCursor(Direction3D),
     MoveEntityViewCursor(Direction1D),
     EditEntity(Coords3D),
     EditEntityAttribute(EntityAttribute, FormattedString<LogStyle>),
+    ExitStringEditor(EntityAttributeText, String),
     ExitEntityView,
     MoveDialogueEditorCursor(Direction1D),
     ExitDialogueEditor,
@@ -37,11 +38,19 @@ impl UiCallbackPreset {
                 .ui
                 .chunk_editor
                 .edit_entity(*coords, &app.world.active_chunk)?,
-            UiCallbackPreset::EditEntityAttribute(attr, default) =>/* app
+            UiCallbackPreset::EditEntityAttribute(attr, default) => app
                 .ui
                 .chunk_editor
-                .edit_entity_attribute(attr, default)?, */
-                todo!(),
+                .entity_view
+                .start_attribute_editor(attr.clone(), default),
+            UiCallbackPreset::ExitStringEditor(attr, s) => {
+                app
+                .ui
+                .chunk_editor
+                .entity_view
+                .set_text_attribute(attr.clone(), s);
+                app.ui.chunk_editor.entity_view.state = EntityViewState::Main;
+            }
             UiCallbackPreset::ExitEntityView => {
                 let entity = app.ui.chunk_editor.entity_view.finish()?;
                 let coords = entity.coords.clone();
