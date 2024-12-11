@@ -1,13 +1,9 @@
 use anyhow::{anyhow, Result};
 use crossterm::event::KeyEvent;
 use quietude::{
-    types::{Coords3D, Direction1D, FormattedString, FormattedText},
-    world::{
-        chunk::Chunk,
-        entity::{Entity, EntityAttribute, EntityAttributeText},
-        log::LogStyle,
-        world::World,
-    },
+    types::{Coords3D, Direction1D, FormattedString, FormattedText}, ui::{choice_menu::ChoiceMenu, traits::ChoiceAttribute}, world::{
+        allegiance::Allegiance, chunk::Chunk, entity::{Entity, EntityAttribute, EntityAttributeChoice, EntityAttributeText, EntityType, Opacity, Size}, log::LogStyle, world::World
+    }
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -29,6 +25,7 @@ pub struct EntityView {
     pub state: EntityViewState,
     cursor_pos: usize,
     text_attr_editor: TextAttributeEditor,
+    pub choice_attr_editor: ChoiceAttributeEditor,
 }
 
 #[derive(Default)]
@@ -44,6 +41,12 @@ pub struct TextAttributeEditor {
     pub text_area: TextArea<'static>,
 }
 
+#[derive(Default)]
+pub struct ChoiceAttributeEditor {
+    pub attr: EntityAttributeChoice,
+    pub menu: ChoiceMenu,
+}
+
 impl EntityView {
     pub fn new() -> Self {
         EntityView {
@@ -54,6 +57,7 @@ impl EntityView {
                 attr: EntityAttributeText::default(),
                 text_area: TextArea::default(),
             },
+            choice_attr_editor: ChoiceAttributeEditor::default(),
         }
     }
 
@@ -90,8 +94,9 @@ impl EntityView {
                 };
                 self.state = EntityViewState::FormattedStringInput;
             }
-            EntityAttribute::Choice(entity_attribute_choice) => {
-                todo!();
+            EntityAttribute::Choice(attr) => {
+                self.choice_attr_editor = ChoiceAttributeEditor::new(attr);
+                self.state = EntityViewState::StringChoice;
             }
         }
     }
@@ -105,6 +110,20 @@ impl EntityView {
                 self.entity.as_mut().unwrap().description = FormattedString::raw(&None, value)
             }
         }
+    }
+
+    pub fn set_choice_attr(&mut self, attr: EntityAttributeChoice, s: &str) -> Result<()> {
+        let entity = self.entity.as_mut().ok_or(anyhow!("tried to access empty entity"))?;
+        match attr {
+            EntityAttributeChoice::Type => entity.entity_type = EntityType::from_str(s)?.clone(),
+            EntityAttributeChoice::IsRooted => entity.is_rooted = Some(bool::from_str(s)?.clone()),
+            EntityAttributeChoice::HasAgency => entity.has_agency = Some(bool::from_str(s)?.clone()),
+            EntityAttributeChoice::Allegiance => todo!(),
+            EntityAttributeChoice::Opacity => entity.opacity = Some(Opacity::from_str(s)?.clone()),
+            EntityAttributeChoice::Size => entity.size = Some(Size::from_str(s)?.clone()),
+        }
+
+        Ok(())
     }
 
     pub fn index_to_attribute_lookup(
@@ -173,7 +192,7 @@ impl Screen for EntityView {
         Ok(())
     }
 
-    fn render(&mut self, frame: &mut Frame, _world: &World, area: Rect) -> Result<()> {
+    fn render(&mut self, frame: &mut Frame, world: &World, area: Rect) -> Result<()> {
         self.entity
             .as_ref()
             .ok_or(anyhow!("tried to view an empty entity"))?;
@@ -210,44 +229,45 @@ impl Screen for EntityView {
         frame.render_widget(Clear, area);
         frame.render_widget(p, area);
 
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Length(4),
+                Constraint::Min(52),
+                Constraint::Length(4),
+            ])
+            .split(area);
+        let block_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(2),
+                Constraint::Min(36),
+                Constraint::Length(2),
+            ])
+            .split(layout[1]);
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Length(5),
+                Constraint::Min(50),
+                Constraint::Length(5),
+            ])
+            .split(area);
+        let text_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3),
+                Constraint::Min(34),
+                Constraint::Length(3),
+            ])
+            .split(layout[1]);
+        
         match self.state {
             EntityViewState::Main => {}
             EntityViewState::StringChoice => {
-                todo!();
+                self.choice_attr_editor.menu.render(frame, world, block_layout[1])?;
             }
             EntityViewState::FormattedStringInput => {
-                let layout = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints([
-                        Constraint::Length(4),
-                        Constraint::Min(52),
-                        Constraint::Length(4),
-                    ])
-                    .split(area);
-                let block_layout = Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(2),
-                        Constraint::Min(36),
-                        Constraint::Length(2),
-                    ])
-                    .split(layout[1]);
-                let layout = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints([
-                        Constraint::Length(5),
-                        Constraint::Min(50),
-                        Constraint::Length(5),
-                    ])
-                    .split(area);
-                let text_layout = Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Length(3),
-                        Constraint::Min(34),
-                        Constraint::Length(3),
-                    ])
-                    .split(layout[1]);
                 let b = Block::bordered().title(format!("{}", self.text_attr_editor.attr));
                 frame.render_widget(Clear, block_layout[1]);
                 frame.render_widget(b, block_layout[1]);
@@ -262,7 +282,7 @@ impl Screen for EntityView {
         &mut self,
         key_event: KeyEvent,
         scheme: ControlSchemeType,
-        _world: &World,
+        world: &World,
     ) -> Option<UiCallbackPreset> {
         let keys = match scheme.keys_from_code(key_event.code) {
             Some(keys) => keys,
@@ -272,7 +292,7 @@ impl Screen for EntityView {
         match self.state {
             EntityViewState::Main => {}
             EntityViewState::StringChoice => {
-                todo!();
+                return self.choice_attr_editor.menu.handle_key_events(key_event, scheme, world);
             }
             EntityViewState::FormattedStringInput => {
                 for key in keys {
@@ -326,5 +346,14 @@ impl Screen for EntityView {
 
     fn refresh_rate(&self) -> u16 {
         60
+    }
+}
+
+impl ChoiceAttributeEditor {
+    pub fn new(attr: EntityAttributeChoice) -> Self {
+        ChoiceAttributeEditor {
+            attr: attr.clone(),
+            menu: ChoiceMenu::new(attr.choices().iter().map(|s| String::from(*s)).collect()),
+        }
     }
 }

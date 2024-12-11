@@ -9,3 +9,4 @@ pub mod chunk_editor;
 pub mod cursor;
 pub mod entity_view;
 pub mod dialogue_editor;
+pub mod choice_menu;

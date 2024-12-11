@@ -9,3 +9,4 @@ pub mod item;
 pub mod log;
 pub mod world;
 pub mod traits;
+pub mod allegiance;

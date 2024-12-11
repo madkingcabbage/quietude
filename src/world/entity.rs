@@ -1,24 +1,17 @@
-use std::{
-    collections::HashMap, default, fmt::{write, Display}
-};
+use std::{collections::HashMap, default, fmt::Display, sync::OnceLock};
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     rng::TickBasedRng,
-    types::{
-        Coords3D, Direction3D, FormattedString, FormattedText, GenericStyle, LineSegment3D, Message,
-    },
-    utils::{avg, insert_noise, product},
+    types::{Coords3D, FormattedString, FormattedText, LineSegment3D},
+    ui::traits::{ChoiceAttribute, StringLookup, StringLookupDictionary},
+    utils::{insert_noise, product},
 };
 
 use super::{
-    action::{Action, SoloAction},
-    chunk::Chunk,
-    item::{Item, ItemType},
-    log::LogStyle,
-    traits::VisibilityModifier,
+    action::{Action, SoloAction}, allegiance::Allegiance, chunk::Chunk, item::{Item, ItemType}, log::LogStyle, traits::VisibilityModifier
 };
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
@@ -30,6 +23,25 @@ pub enum EntityType {
     #[default]
     Void,
 }
+
+impl StringLookup for EntityType {
+    fn dictionary() -> &'static StringLookupDictionary<Self> {
+        static DICT: OnceLock<StringLookupDictionary<EntityType>> = OnceLock::new();
+        DICT.get_or_init(|| {
+            let dict = vec![
+                (&EntityType::Player, "Player"),
+                (&EntityType::Grass, "Grass"),
+                (&EntityType::Tree, "Tree"),
+                (&EntityType::NpcFriendly, "Friendly NPC"),
+                (&EntityType::Void, "Void"),
+            ];
+            let dict = StringLookupDictionary { dict };
+            dict
+        })
+    }
+}
+
+impl ChoiceAttribute for EntityType {}
 
 pub static mut NEXT_ID: u32 = 0;
 
@@ -65,8 +77,9 @@ pub enum EntityAttributeText {
     Description,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum EntityAttributeChoice {
+    #[default]
     Type,
     IsRooted,
     HasAgency,
@@ -111,6 +124,25 @@ pub enum Size {
     Large,
 }
 
+impl StringLookup for Size {
+    fn dictionary() -> &'static StringLookupDictionary<Self> {
+        static DICT: OnceLock<StringLookupDictionary<Size>> = OnceLock::new();
+        DICT.get_or_init(|| {
+            let dict = vec![
+                (&Size::Small, "Small"),
+                (&Size::Medium, "Medium"),
+                (&Size::Large, "Large"),
+            ];
+            let dict = StringLookupDictionary {
+                dict
+            };
+            dict
+        })
+    }
+}
+
+impl ChoiceAttribute for Size {}
+
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Opacity {
     #[default]
@@ -119,6 +151,26 @@ pub enum Opacity {
     MostlyTransparent,
     Transparent,
 }
+
+impl StringLookup for Opacity {
+    fn dictionary() -> &'static StringLookupDictionary<Self> {
+        static DICT: OnceLock<StringLookupDictionary<Opacity>> = OnceLock::new();
+        DICT.get_or_init(|| {
+            let dict = vec![
+                (&Opacity::Solid, "Solid"), 
+                (&Opacity::Dense, "Dense"),
+                (&Opacity::MostlyTransparent, "Mostly Transparent"),
+                (&Opacity::Transparent, "Transparent"),
+            ];
+            let dict = StringLookupDictionary {
+                dict
+            };
+            dict
+        })
+    }
+}
+
+impl ChoiceAttribute for Opacity {}
 
 impl Entity {
     pub fn new(coords: &Coords3D) -> Self {
@@ -182,24 +234,24 @@ impl Entity {
                     FormattedText::new(&format!("{}", self.entity_type), LogStyle::Value),
                 ),
                 EntityAttributeChoice::IsRooted => FormattedString::from(
-                    &None, 
+                    &None,
                     FormattedText::new(&format!("{}", self.is_rooted()), LogStyle::Value),
                 ),
                 EntityAttributeChoice::HasAgency => FormattedString::from(
                     &None,
-                    FormattedText::new(&format!("{}", self.has_agency()), LogStyle::Value)
+                    FormattedText::new(&format!("{}", self.has_agency()), LogStyle::Value),
                 ),
                 EntityAttributeChoice::Allegiance => FormattedString::from(
                     &None,
-                    FormattedText::new(&format!("{}", self.allegiance()), LogStyle::Value)
+                    FormattedText::new(&format!("{}", self.allegiance()), LogStyle::Value),
                 ),
                 EntityAttributeChoice::Opacity => FormattedString::from(
                     &None,
-                    FormattedText::new(&format!("{}", self.opacity()), LogStyle::Value)
+                    FormattedText::new(&format!("{}", self.opacity()), LogStyle::Value),
                 ),
                 EntityAttributeChoice::Size => FormattedString::from(
                     &None,
-                    FormattedText::new(&format!("{}", self.size()), LogStyle::Value)
+                    FormattedText::new(&format!("{}", self.size()), LogStyle::Value),
                 ),
             },
         }
@@ -481,6 +533,19 @@ impl Display for EntityAttributeChoice {
             EntityAttributeChoice::Allegiance => write!(f, "Allegiance"),
             EntityAttributeChoice::Opacity => write!(f, "Opacity"),
             EntityAttributeChoice::Size => write!(f, "Size"),
+        }
+    }
+}
+
+impl EntityAttributeChoice {
+    pub fn choices(&self) -> Vec<&'static str> {
+        match self {
+            EntityAttributeChoice::Type => EntityType::choices(),
+            EntityAttributeChoice::IsRooted => bool::choices(),
+            EntityAttributeChoice::HasAgency => bool::choices(),
+            EntityAttributeChoice::Allegiance => Allegiance::choices(),
+            EntityAttributeChoice::Opacity => Opacity::choices(),
+            EntityAttributeChoice::Size => Size::choices(),
         }
     }
 }

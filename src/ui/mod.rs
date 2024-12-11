@@ -14,3 +14,4 @@ mod utils;
 mod widgets;
 pub mod errors;
 pub mod tui;
+pub mod choice_menu;

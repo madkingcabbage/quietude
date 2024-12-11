@@ -58,25 +58,25 @@ impl ControlScheme {
                 .insert(KeyCode::Char('Q'), vec![UiKey::Quit]);
             scheme
                 .controls
-                .insert(KeyCode::Char('w'), vec![UiKey::MoveNorth]);
+                .insert(KeyCode::Char('w'), vec![UiKey::MoveNorth, UiKey::MoveUp]);
             scheme
                 .controls
                 .insert(KeyCode::Char('a'), vec![UiKey::MoveWest]);
             scheme
                 .controls
-                .insert(KeyCode::Char('s'), vec![UiKey::MoveSouth]);
+                .insert(KeyCode::Char('s'), vec![UiKey::MoveSouth, UiKey::MoveDown]);
             scheme
                 .controls
                 .insert(KeyCode::Char('d'), vec![UiKey::MoveEast]);
             scheme
                 .controls
-                .insert(KeyCode::Up, vec![UiKey::MoveNorth]);
+                .insert(KeyCode::Up, vec![UiKey::MoveNorth, UiKey::MoveUp]);
             scheme
                 .controls
                 .insert(KeyCode::Left, vec![UiKey::MoveWest]);
             scheme
                 .controls
-                .insert(KeyCode::Down, vec![UiKey::MoveSouth]);
+                .insert(KeyCode::Down, vec![UiKey::MoveSouth, UiKey::MoveDown]);
             scheme
                 .controls
                 .insert(KeyCode::Right, vec![UiKey::MoveEast]);
