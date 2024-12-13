@@ -23,7 +23,8 @@ pub enum UiCallbackPreset {
     EditEntity(Coords3D),
     EditEntityAttribute(EntityAttribute, FormattedString<LogStyle>),
     ExitStringEditor(EntityAttributeText, String),
-    ExitChoiceMenu(String),
+    ChoiceMenuSelectAndExit(String),
+    ExitChoiceMenu,
     ExitEntityView,
     MoveDialogueEditorCursor(Direction1D),
     ExitDialogueEditor,
@@ -66,7 +67,7 @@ impl UiCallbackPreset {
                     .set_text_attribute(attr.clone(), s);
                 app.ui.chunk_editor.entity_view.state = EntityViewState::Main;
             }
-            UiCallbackPreset::ExitChoiceMenu(s) => {
+            UiCallbackPreset::ChoiceMenuSelectAndExit(s) => {
                 let attr = app
                     .ui
                     .chunk_editor
@@ -75,6 +76,9 @@ impl UiCallbackPreset {
                     .attr
                     .clone();
                 app.ui.chunk_editor.entity_view.set_choice_attr(attr, s)?;
+                app.ui.chunk_editor.entity_view.state = EntityViewState::Main;
+            }
+            UiCallbackPreset::ExitChoiceMenu => {
                 app.ui.chunk_editor.entity_view.state = EntityViewState::Main;
             }
             UiCallbackPreset::ExitEntityView => {

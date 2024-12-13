@@ -52,15 +52,18 @@ impl Screen for ChoiceMenu {
         for key in keys {
             match key {
                 UiKey::MoveDown => {
-                    return Some(UiCallbackPreset::MoveChoiceMenuCursor(Direction1D::Down))
+                    return Some(UiCallbackPreset::MoveChoiceMenuCursor(Direction1D::Down));
                 }
                 UiKey::MoveUp => {
-                    return Some(UiCallbackPreset::MoveChoiceMenuCursor(Direction1D::Up))
+                    return Some(UiCallbackPreset::MoveChoiceMenuCursor(Direction1D::Up));
                 }
                 UiKey::Confirm => {
-                    return Some(UiCallbackPreset::ExitChoiceMenu(
+                    return Some(UiCallbackPreset::ChoiceMenuSelectAndExit(
                         self.options[self.index].clone(),
-                    ))
+                    ));
+                }
+                UiKey::ExitSubmenu => {
+                    return Some(UiCallbackPreset::ExitChoiceMenu);
                 }
                 _ => {}
             }
