@@ -14,7 +14,7 @@ use log4rs::{
 use quark::{app::App, ui::errors::install_hooks};
 
 #[derive(Parser)]
-#[clap(name="Q", about = "Pythagorean window", author, version, long_about = None)]
+#[clap(name="Quark", about="Level editor for Quietude", author="Liv Haze", version, long_about = None)]
 struct Args {
     #[clap(long, short = 'd', action=ArgAction::Set, help = "Project directory")]
     project_directory: Option<String>,
