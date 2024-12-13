@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, path::{Path, PathBuf}};
 
 use anyhow::Result;
 use crossterm::event::{self, poll, Event, KeyCode, KeyEvent};
@@ -29,6 +29,7 @@ pub struct App {
 impl App {
     pub fn new(project_dir: Option<String>) -> Self {
         let (id, chunk) = if let Some(ref project_dir) = project_dir {
+            let project_dir = Path::new(project_dir);
             if guarantee_project_structure(&project_dir).unwrap_or_else(|e| panic!("{e} while checking project directory structure")) {
                 load_project(&project_dir).unwrap_or_else(|e| panic!("{e} while loading project"))
             } else {
@@ -41,7 +42,7 @@ impl App {
         let mut world =
             World::from_seed(0).unwrap_or_else(|e| panic!("{e} while generating world"));
         world
-            .add_chunk_in_dir(project_dir.as_ref().unwrap(), chunk)
+            .add_chunk_in_dir(Path::new(project_dir.as_ref().unwrap()), chunk)
             .unwrap_or_else(|e| panic!("{e} while giving chunk to world"));
 
         App {
