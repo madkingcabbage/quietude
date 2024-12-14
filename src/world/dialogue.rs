@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use ratatui::style::Style;
@@ -75,7 +75,7 @@ impl DialogueTree {
     }
 
     pub fn from_entity_name(speaker_id: u32, interlocutor_id: u32) -> Result<Self> {
-        let (speaker_name, nodes) = load_profile(&format!("{speaker_id}.json"))?;
+        let (speaker_name, nodes) = load_profile(Path::new(&format!("{speaker_id}.json")))?;
         Ok(DialogueTree {
             speaker_name,
             nodes,

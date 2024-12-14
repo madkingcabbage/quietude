@@ -2,11 +2,10 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use quietude::{
-    types::{Coords3D, Direction1D, Direction3D, FormattedString, FormattedText},
-    world::{
+    constants::SAVE_EXTENSION, types::{Coords3D, Direction1D, Direction3D, FormattedString, FormattedText}, world::{
         entity::{EntityAttribute, EntityAttributeText},
         log::LogStyle,
-    },
+    }
 };
 
 use crate::{app::App, store::save_project, types::Message};
@@ -97,19 +96,9 @@ impl UiCallbackPreset {
             UiCallbackPreset::ExitDialogueEditor => {
                 app.ui.dialogue_editor.state = DialogueEditorState::Main;
                 let tree = app.ui.dialogue_editor.finish()?;
-                if app.project_dir.is_none() {
-                    return Ok(Some(Message::Popup(FormattedString::from(
-                        &None,
-                        FormattedText::new(
-                            "Choose a directory for the project before saving",
-                            PopupStyle::Error,
-                        ),
-                    ))));
-                }
+                let mut path = app.project_dir.to_path_buf();
 
-                let mut path = app.project_dir.clone().unwrap();
-
-                path.push_str(&tree.speaker_name);
+                path.push(format!("{}{}", &tree.speaker_name, SAVE_EXTENSION));
 
                 tree.save(PathBuf::from(path))?;
             }

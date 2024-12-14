@@ -1,4 +1,4 @@
-use std::{io, time::Duration};
+use std::{io, path::Path, time::Duration};
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, poll, Event, KeyCode, KeyEvent, MouseEvent};
@@ -32,7 +32,7 @@ impl App {
         };
 
         let world = if let Some(savename) = savename {
-            World::new(&savename)?
+            World::new(Path::new(&savename))?
         } else {
             World::from_seed(seed)?
         };
@@ -136,7 +136,7 @@ impl App {
 
     fn quit(&mut self) -> Result<()> {
         if self.world.savename.is_some() {
-            save_profile(&self.world.savename.clone().unwrap(), &self.world)?;
+            save_profile(Path::new(&self.world.savename.as_ref().unwrap()), &self.world)?;
         }
         self.running = false;
         Ok(())

@@ -23,26 +23,36 @@ pub struct App {
     pub next_valid_entity_id: u32,
     pub running: bool,
     pub ui: Ui,
-    pub project_dir: Option<String>,
+    pub project_dir: PathBuf,
 }
 
 impl App {
     pub fn new(project_dir: Option<String>) -> Self {
-        let (id, chunk) = if let Some(ref project_dir) = project_dir {
-            let project_dir = Path::new(project_dir);
+        let project_dir = project_dir.unwrap_or_else(|| {
+            let mut s = String::new();
+
+            println!("Please choose where to save your new project:");
+            io::stdin()
+                .read_line(&mut s)
+                .unwrap_or_else(|e| panic!("{e} while getting project directory from user"));
+            s.trim().to_string()
+        });
+
+        let (id, chunk) = {
+            let project_dir = Path::new(&project_dir);
             if guarantee_project_structure(&project_dir).unwrap_or_else(|e| panic!("{e} while checking project directory structure")) {
                 load_project(&project_dir).unwrap_or_else(|e| panic!("{e} while loading project"))
             } else {
                 (0, Chunk::default())
             }
-        } else {
-            (0, Chunk::default())
         };
 
         let mut world =
             World::from_seed(0).unwrap_or_else(|e| panic!("{e} while generating world"));
+
+        let project_dir = Path::new(&project_dir);
         world
-            .add_chunk_in_dir(Path::new(project_dir.as_ref().unwrap()), chunk)
+            .add_chunk_in_dir(project_dir, chunk)
             .unwrap_or_else(|e| panic!("{e} while giving chunk to world"));
 
         App {
@@ -50,7 +60,7 @@ impl App {
             next_valid_entity_id: id,
             running: true,
             ui: Ui::new(),
-            project_dir: project_dir.clone(),
+            project_dir: project_dir.to_path_buf(),
         }
     }
 

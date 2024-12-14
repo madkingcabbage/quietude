@@ -7,17 +7,17 @@ use quietude::{constants::{SAVE_EXTENSION, WORLD_DIR_NAME, WORLD_FILENAME}, stor
 use crate::app::App;
 
 pub fn save_project(app: &App) -> Result<()> {
-    let project_dir = app.project_dir.as_ref().ok_or(anyhow!("tried to load a chunk without a project directory"))?;
+    let mut project_dir = app.project_dir.clone();
     if !guarantee_project_structure(Path::new(&project_dir))? {
         return Err(anyhow!("project structure was invalid"));
     }
+   
+    project_dir.push(WORLD_DIR_NAME);
 
-    let parent: PathBuf = [project_dir, WORLD_DIR_NAME].iter().collect();
-
-    let mut world_path = parent.clone();
+    let mut world_path = project_dir.clone();
     world_path.push(Path::new(&format!("{WORLD_FILENAME}{SAVE_EXTENSION}")));
 
-    let mut chunk_path = parent;
+    let mut chunk_path = project_dir;
     let default_coords = Coords4D(0, 0, 0, 0);
     chunk_path.push(Path::new(&format!("{default_coords}{SAVE_EXTENSION}")));
 

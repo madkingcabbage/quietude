@@ -7,13 +7,13 @@ use std::{
 use anyhow::{anyhow, Result};
 use directories::ProjectDirs;
 use include_dir::{include_dir, Dir};
-use log::{info, trace};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::{from_reader, to_writer};
 
 pub static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 
-pub fn save_profile<T: Serialize>(path: &str, data: &T) -> Result<()> {
+pub fn save_profile<T: Serialize>(path: &Path, data: &T) -> Result<()> {
     let file = File::create(store_path(path)?)?;
     assert!(file.metadata()?.is_file());
     let buffer = BufWriter::new(file);
@@ -21,18 +21,18 @@ pub fn save_profile<T: Serialize>(path: &str, data: &T) -> Result<()> {
     Ok(())
 }
 
-pub fn load_profile<T>(filename: &str) -> Result<T>
+pub fn load_profile<T>(path: &Path) -> Result<T>
 where
     for<'a> T: Deserialize<'a>,
 {
-    let file = File::open(store_path(filename)?)?;
+    let file = File::open(store_path(path)?)?;
     let data: T = from_reader(file)?;
     Ok(data)
 }
 
 pub fn save<T: Serialize>(path: &PathBuf, data: &T) -> Result<()> {
     if let Some(parent) = path.parent() {
-        if !Path::new(parent).exists() {
+        if !&parent.exists() {
             DirBuilder::new().recursive(true).create(&path)?;
         }
     }
@@ -44,16 +44,17 @@ pub fn save<T: Serialize>(path: &PathBuf, data: &T) -> Result<()> {
     Ok(())
 }
 
-pub fn load<T>(path: &PathBuf) -> Result<T>
+pub fn load<T>(path: &Path) -> Result<T>
 where
     for<'a> T: Deserialize<'a>,
 {
+    debug!("Loading data from {}", path.to_string_lossy());
     let file = File::open(path)?;
     let data: T = from_reader(file)?;
     Ok(data)
 }
 
-fn store_path(filename: &str) -> Result<PathBuf> {
+fn store_path(path: &Path) -> Result<PathBuf> {
     let dirs = ProjectDirs::from("org", "pythagorea", "q")
         .ok_or(anyhow!("failed to find directory names"))?;
 
@@ -61,7 +62,7 @@ fn store_path(filename: &str) -> Result<PathBuf> {
     if !data_dirs.exists() {
         create_dir_all(data_dirs)?;
     }
-    let path = data_dirs.join(filename);
+    let path = data_dirs.join(path);
     Ok(path)
 }
 
@@ -74,10 +75,10 @@ mod tests {
 
     #[test]
     fn test_save_load() {
-        let result = save_profile("test.json", &World::default());
+        let result = save_profile(Path::new("test.json"), &World::default());
         assert!(result.is_ok());
 
-        let world = load_profile("test.json");
+        let world = load_profile(Path::new("test.json"));
         assert!(result.is_ok());
 
         let world_some: World = world.unwrap();

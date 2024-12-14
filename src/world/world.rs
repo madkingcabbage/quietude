@@ -32,13 +32,13 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(savename: &str) -> Result<Self> {
-        let world = World::from_savename(savename);
+    pub fn new(path: &Path) -> Result<Self> {
+        let world = World::from_savename(path);
         if world.is_ok() {
-            info!("Loading world from save: {savename}.");
+            info!("Loading world from save: {}.", path.to_string_lossy());
             world
         } else {
-            info!("Could not load save {savename}. Creating new save.");
+            info!("Could not load save {}. Creating new save.", path.to_string_lossy());
             Self::from_seed(rand::random())
         }
     }
@@ -64,46 +64,36 @@ impl World {
     }
 
     pub fn add_chunk(&mut self, chunk: Chunk) -> Result<()> {
-        let filename = format!(
-            "world/{}{SAVE_EXTENSION}",
-            self.chunk_coords
-        );
-        info!("saving chunk to {filename}");
-        save_profile(&filename, &self.active_chunk)?;
+        let path: PathBuf = ["world/", &format!("{}", self.chunk_coords), SAVE_EXTENSION].iter().collect();
+        info!("saving chunk to {}", &path.to_string_lossy());
+        save_profile(&path, &self.active_chunk)?;
         
         self.active_chunk = chunk;
         Ok(())
     }
 
-    pub fn add_chunk_in_dir(&mut self, project_dir: &str, chunk: Chunk) -> Result<()> {
-        let filename = format!(
-            "{project_dir}{WORLD_DIR_NAME}{}{SAVE_EXTENSION}",
-            self.chunk_coords
-        );
-        info!("saving chunk to {filename}");
-        save(&PathBuf::from(&filename), &self.active_chunk)?;
+    pub fn add_chunk_in_dir(&mut self, path: &Path, chunk: Chunk) -> Result<()> {
+        let mut path = path.to_path_buf();
+        path.push(WORLD_DIR_NAME);
+        path.push(format!("{}{SAVE_EXTENSION}", self.chunk_coords));
+        info!("saving chunk to {}", path.to_string_lossy());
+        save(&PathBuf::from(&path), &self.active_chunk)?;
         
         self.active_chunk = chunk;
         Ok(())
     }
 
-    fn from_savename(savename: &str) -> Result<Self> {
-        let mut filename = String::from(savename);
-        filename.push_str(".json");
-
-        load_profile(&filename)
+    fn from_savename(path: &Path) -> Result<Self> {
+        load_profile(&path)
     }
 
     pub fn change_to_chunk(&mut self, coords: Coords4D) -> Result<()> {
-        let filename = format!(
-            "world/{coords}.json",
-        );
-        info!("saving chunk to {filename}");
-        save_profile(&filename, &self.active_chunk)?;
+        let path: PathBuf = ["world/", &format!("{coords}.json")].iter().collect();
+        info!("saving chunk to {}", &path.to_string_lossy());
+        save_profile(&path, &self.active_chunk)?;
 
-        let filename = format!("world/{}.json", coords.to_str());
-        self.active_chunk = if let Ok(chunk_try) = load_profile(&filename) {
-            info!("loading chunk from {filename}");
+        self.active_chunk = if let Ok(chunk_try) = load_profile(&path) {
+            info!("loading chunk from {}", &path.to_string_lossy());
             chunk_try
         } else {
             info!("generating new chunk at {:?} from {}", coords, self.seed);
@@ -139,7 +129,7 @@ impl World {
             next_entity_id: self.next_entity_id,
             ..Default::default()
         };
-        save_profile(&savename, &world_clone);
+        save_profile(Path::new(&savename), &world_clone);
     }
 
     pub fn has_condition(&self, condition: WorldCondition) -> bool {
