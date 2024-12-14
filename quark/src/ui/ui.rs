@@ -4,7 +4,7 @@ use quietude::{types::{Direction1D, Direction3D}, world::world::World};
 use ratatui::Frame;
 use tui_textarea::TextArea;
 
-use super::{chunk_editor::ChunkEditor, control_scheme::ControlSchemeType, dialogue_editor::DialogueEditor, popup_message::PopupMessage, traits::Screen, ui_callback::UiCallbackPreset};
+use super::{choice_menu::ChoiceMenu, chunk_editor::ChunkEditor, control_scheme::ControlSchemeType, dialogue_editor::DialogueEditor, popup_message::PopupMessage, traits::Screen, ui_callback::UiCallbackPreset};
 
 pub struct Ui {
     pub state: UiState,
@@ -13,6 +13,7 @@ pub struct Ui {
     popup_input: TextArea<'static>,
     popup_messages: Vec<PopupMessage>,
     pub scheme: ControlSchemeType,
+    pub choice_menu: ChoiceMenu,
 }
 
 #[derive(Default)]
@@ -20,6 +21,7 @@ pub enum UiState {
     #[default]
     Chunk,
     Dialogue,
+    ChoiceMenu,
 }
 
 impl Ui {
@@ -31,6 +33,7 @@ impl Ui {
             popup_input: TextArea::default(),
             popup_messages: vec![],
             scheme: ControlSchemeType::default(),
+            choice_menu: ChoiceMenu::default(),
         }
     }
 
@@ -65,6 +68,7 @@ impl Ui {
         match self.state {
             UiState::Chunk => &mut self.chunk_editor,
             UiState::Dialogue => &mut self.dialogue_editor,
+            UiState::ChoiceMenu => &mut self.choice_menu,
         }
     }
 
@@ -72,6 +76,7 @@ impl Ui {
         match self.state {
             UiState::Chunk => &self.chunk_editor,
             UiState::Dialogue => &self.dialogue_editor,
+            UiState::ChoiceMenu => &self.choice_menu,
         }
     }
 

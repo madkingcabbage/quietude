@@ -4,17 +4,13 @@ use anyhow::Result;
 use crossterm::event::{self, poll, Event, KeyCode, KeyEvent};
 use log::error;
 use quietude::{
-    types::{FormattedString, FormattedText},
-    utils::frequency_to_period,
-    world::{chunk::Chunk, world::World},
+    types::{FormattedString, FormattedText}, ui::choice_menu, utils::frequency_to_period, world::{chunk::Chunk, world::World}
 };
 use ratatui::{prelude::CrosstermBackend, Frame};
 
 use crate::{
     store::{guarantee_project_structure, load_project, save_project}, types::Message, ui::{
-        popup_message::{PopupMessage, PopupStyle},
-        tui::Tui,
-        ui::Ui,
+        choice_menu::ChoiceMenu, popup_message::{PopupMessage, PopupStyle}, tui::Tui, ui::Ui
     }
 };
 
@@ -139,4 +135,5 @@ impl App {
         self.running = false;
         Ok(())
     }
+
 }

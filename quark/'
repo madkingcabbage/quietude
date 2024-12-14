@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use crossterm::event::KeyEvent;
 use quietude::{
-    types::{Coords3D, Direction1D, FormattedString, FormattedText}, ui::{traits::ChoiceAttribute}, world::{
-        chunk::Chunk, entity::{Entity, EntityAttribute, EntityAttributeChoice, EntityAttributeText, EntityType, Opacity, Size}, log::LogStyle, world::World
+    types::{Coords3D, Direction1D, FormattedString, FormattedText}, ui::{choice_menu::ChoiceMenu, traits::ChoiceAttribute}, world::{
+        allegiance::Allegiance, chunk::Chunk, entity::{Entity, EntityAttribute, EntityAttributeChoice, EntityAttributeText, EntityType, Opacity, Size}, log::LogStyle, world::World
     }
 };
 use ratatui::{
@@ -15,7 +15,9 @@ use ratatui::{
 use tui_textarea::TextArea;
 
 use super::{
-    choice_menu::ChoiceMenu, control_scheme::{ControlSchemeType, UiKey}, traits::Screen, ui_callback::UiCallbackPreset
+    control_scheme::{ControlSchemeType, UiKey},
+    traits::Screen,
+    ui_callback::UiCallbackPreset,
 };
 
 pub struct EntityView {
@@ -29,6 +31,7 @@ pub struct EntityView {
 pub enum EntityViewState {
     #[default]
     Main,
+    StringChoice,
     FormattedStringInput,
 }
 
@@ -53,6 +56,7 @@ impl EntityView {
                 attr: EntityAttributeText::default(),
                 text_area: TextArea::default(),
             },
+            choice_attr_editor: ChoiceAttributeEditor::default(),
         }
     }
 
@@ -262,6 +266,9 @@ impl Screen for EntityView {
         
         match self.state {
             EntityViewState::Main => {}
+            EntityViewState::StringChoice => {
+                self.choice_attr_editor.menu.render(frame, world, block_layout[1])?;
+            }
             EntityViewState::FormattedStringInput => {
                 let b = Block::bordered().title(format!("{}", self.text_attr_editor.attr));
                 frame.render_widget(Clear, block_layout[1]);
@@ -274,6 +281,7 @@ impl Screen for EntityView {
     }
 
     fn handle_key_events(
+
         &mut self,
         key_event: KeyEvent,
         scheme: ControlSchemeType,
@@ -286,6 +294,9 @@ impl Screen for EntityView {
 
         match self.state {
             EntityViewState::Main => {}
+            EntityViewState::StringChoice => {
+                return self.choice_attr_editor.menu.handle_key_events(key_event, scheme, world);
+            }
             EntityViewState::FormattedStringInput => {
                 for key in keys {
                     if *key == UiKey::ExitSubmenu {
