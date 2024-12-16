@@ -1,4 +1,4 @@
-use std::{collections::HashMap, default, fmt::Display, sync::OnceLock};
+use std::{collections::HashMap, default, fmt::Display, result, str::FromStr, sync::OnceLock};
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
@@ -267,6 +267,118 @@ impl Entity {
         count
     }
 
+    pub fn add_attribute(&mut self, attr: &EntityAttribute) -> Result<()> {
+        match attr {
+            EntityAttribute::Text(attr) => {
+                match attr {
+                    EntityAttributeText::Name => Err(anyhow!("{attr} is already a required field")),
+                    EntityAttributeText::Description => Err(anyhow!("{attr} is already a required field")),
+                }
+            }
+            EntityAttribute::Choice(attr) => {
+                match attr {
+                    EntityAttributeChoice::Type => Err(anyhow!("{attr} is already a required field")),
+                    EntityAttributeChoice::IsRooted => {
+                        if self.is_rooted.is_some() {
+                            Err(anyhow!("{attr} is already present"))
+                        } else {
+                            self.is_rooted = Some(Default::default());
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::HasAgency => {
+                        if self.is_rooted.is_some() {
+                            Err(anyhow!("{attr} is already present"))
+                        } else {
+                            self.has_agency = Some(Default::default());
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::Allegiance => {
+                        if self.allegiance.is_some() {
+                            Err(anyhow!("{attr} is already present"))
+                        } else {
+                            self.allegiance = Some(Default::default());
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::Opacity => {
+                        if self.opacity.is_some() {
+                            Err(anyhow!("{attr} is already present"))
+                        } else {
+                            self.opacity = Some(Default::default());
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::Size => {
+                        if self.size.is_some() {
+                            Err(anyhow!("{attr} is already present"))
+                        } else {
+                            self.size = Some(Default::default());
+                            Ok(())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn remove_attribute(&mut self, attr: &EntityAttribute) -> Result<()> {
+        match attr {
+            EntityAttribute::Text(attr) => {
+                match attr {
+                    EntityAttributeText::Name => Err(anyhow!("{attr} is a required field")),
+                    EntityAttributeText::Description => Err(anyhow!("{attr} is a required field")),
+                }
+            }
+            EntityAttribute::Choice(attr) => {
+                match attr {
+                    EntityAttributeChoice::Type => Err(anyhow!("{attr} is a required field")),
+                    EntityAttributeChoice::IsRooted => {
+                        if self.is_rooted.is_none() {
+                            Err(anyhow!("{attr} does not exist in entity"))
+                        } else {
+                            self.is_rooted = None;
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::HasAgency => {
+                        if self.has_agency.is_none() {
+                            Err(anyhow!("{attr} does not exist in entity"))
+                        } else {
+                            self.has_agency = None;
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::Allegiance => {
+                        if self.allegiance.is_none() {
+                            Err(anyhow!("{attr} does not exist in entity"))
+                        } else {
+                            self.allegiance = None;
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::Opacity => {
+                        if self.opacity.is_none() {
+                            Err(anyhow!("{attr} does not exist in entity"))
+                        } else {
+                            self.opacity = None;
+                            Ok(())
+                        }
+                    }
+                    EntityAttributeChoice::Size => {
+                        if self.size.is_none() {
+                            Err(anyhow!("{attr} does not exist in entity"))
+                        } else {
+                            self.size = None;
+                            Ok(())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn has_attribute(&self, attr: &EntityAttribute) -> bool {
         match attr {
             EntityAttribute::Text(attr_text) => match attr_text {
@@ -503,6 +615,24 @@ impl Display for Opacity {
 impl Display for Size {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl FromStr for EntityAttribute {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+        match s {
+            "Name" => Ok(EntityAttribute::Text(EntityAttributeText::Name)),
+            "Description" => Ok(EntityAttribute::Text(EntityAttributeText::Description)),
+            "Type" => Ok(EntityAttribute::Choice(EntityAttributeChoice::Type)),
+            "Is rooted" => Ok(EntityAttribute::Choice(EntityAttributeChoice::IsRooted)),
+            "Has agency" => Ok(EntityAttribute::Choice(EntityAttributeChoice::HasAgency)),
+            "Allegiance" => Ok(EntityAttribute::Choice(EntityAttributeChoice::Allegiance)),
+            "Opacity" => Ok(EntityAttribute::Choice(EntityAttributeChoice::Opacity)),
+            "Size" => Ok(EntityAttribute::Choice(EntityAttributeChoice::Size)),
+            _ => Err(anyhow!("could not parse {s} as entity attribute")),
+        }
     }
 }
 

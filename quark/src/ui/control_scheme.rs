@@ -23,6 +23,8 @@ pub enum UiKey {
     MoveDown,
     MoveUp,
     EditEntity,
+    AddItem,
+    RemoveItem,
     Confirm,
     ExitSubmenu,
     Save,
@@ -61,7 +63,7 @@ impl ControlScheme {
                 .insert(KeyCode::Char('w'), vec![UiKey::MoveNorth, UiKey::MoveUp]);
             scheme
                 .controls
-                .insert(KeyCode::Char('a'), vec![UiKey::MoveWest]);
+                .insert(KeyCode::Char('a'), vec![UiKey::MoveWest, UiKey::AddItem]);
             scheme
                 .controls
                 .insert(KeyCode::Char('s'), vec![UiKey::MoveSouth, UiKey::MoveDown]);
@@ -94,7 +96,10 @@ impl ControlScheme {
                 .insert(KeyCode::Char('x'), vec![UiKey::Save]);
             scheme
                 .controls
-                .insert(KeyCode::Char('e'), vec![UiKey::EditEntity]);
+                .insert(KeyCode::Char('e'), vec![UiKey::EditEntity, UiKey::AddItem]);
+            scheme
+                .controls
+                .insert(KeyCode::Char('r'), vec![UiKey::RemoveItem]);
             scheme
                 .controls
                 .insert(KeyCode::Esc, vec![UiKey::ExitSubmenu]);

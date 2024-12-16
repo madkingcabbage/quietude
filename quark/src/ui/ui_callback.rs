@@ -13,7 +13,12 @@ use quietude::{
 use crate::{app::App, store::save_project, types::Message};
 
 use super::{
-    choice_menu::ChoiceMenu, chunk_editor::ChunkEditorState, dialogue_editor::DialogueEditorState, entity_view::EntityViewState, popup_message::PopupStyle, ui::{Ui, UiState}
+    choice_menu::ChoiceMenu,
+    chunk_editor::ChunkEditorState,
+    dialogue_editor::DialogueEditorState,
+    entity_view::EntityViewState,
+    popup_message::PopupStyle,
+    ui::{Ui, UiState},
 };
 
 pub enum UiCallbackPreset {
@@ -22,6 +27,8 @@ pub enum UiCallbackPreset {
     MoveChoiceMenuCursor(Direction1D),
     EditEntity(Coords3D),
     EditEntityAttribute(EntityAttribute, FormattedString<LogStyle>),
+    AddEntityAttribute,
+    RemoveEntityAttribute(EntityAttribute),
     ExitStringEditor(EntityAttributeText, String),
     ChoiceMenuSelectAndExit(String),
     ExitChoiceMenu,
@@ -62,7 +69,9 @@ impl UiCallbackPreset {
                     let cb = |s: &str, ui: &mut Ui| {
                         let attr = ui.chunk_editor.entity_view.get_current_attribute()?;
                         if let EntityAttribute::Choice(attr) = attr {
-                            ui.chunk_editor.entity_view.set_choice_attr(attr.clone(), s)?;
+                            ui.chunk_editor
+                                .entity_view
+                                .set_choice_attr(attr.clone(), s)?;
                         }
                         Ok(())
                     };
@@ -71,6 +80,24 @@ impl UiCallbackPreset {
                     app.ui.state = UiState::ChoiceMenu;
                 }
             },
+            UiCallbackPreset::AddEntityAttribute => {
+                let ev = &app.ui.chunk_editor.entity_view;
+                let choices: Vec<&EntityAttribute> = EntityAttribute::attribute_order()
+                    .iter()
+                    .filter(|attr| !ev.has_attribute(attr).unwrap())
+                    .collect();
+                let choices = choices.iter().map(|attr| format!("{attr}")).collect();
+                let cb = |s: &str, ui: &mut Ui| {
+                    ui.chunk_editor.entity_view.add_attribute(&s.parse()?)?;
+                    Ok(())
+                };
+                app.ui.choice_menu = ChoiceMenu::new(choices, cb);
+                app.ui.state = UiState::ChoiceMenu;
+            }
+            UiCallbackPreset::RemoveEntityAttribute(attr) => {
+                app.ui.chunk_editor.entity_view.remove_attribute(attr)?;
+                app.ui.chunk_editor.entity_view.validate_cursor_pos();
+            }
             UiCallbackPreset::ExitStringEditor(attr, s) => {
                 app.ui
                     .chunk_editor

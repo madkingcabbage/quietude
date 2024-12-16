@@ -138,6 +138,18 @@ impl EntityView {
             "index {index} does not compute to a valid attribute"
         )))
     }
+    
+    pub fn add_attribute(&mut self, attr: &EntityAttribute) -> Result<()> {
+        self.entity.as_mut().ok_or(anyhow!("tried to access empty entity"))?.add_attribute(attr)
+    }
+
+    pub fn remove_attribute(&mut self, attr: &EntityAttribute) -> Result<()> {
+        self.entity.as_mut().ok_or(anyhow!("tried to access empty entity"))?.remove_attribute(attr)
+    }
+
+    pub fn has_attribute(&self, attr: &EntityAttribute) -> Result<bool> {
+        Ok(self.entity.as_ref().ok_or(anyhow!("tried to access empty entity"))?.has_attribute(attr))
+    }
 
     pub fn attribute_list(
         entity: &Entity,
@@ -148,7 +160,6 @@ impl EntityView {
             if entity.has_attribute(attr) {
                 let (key, value) = EntityView::index_to_attribute_lookup(index, entity)?;
                 list.push((
-
                     FormattedText::new(&format!("{key}"), LogStyle::Attribute),
                     value,
                 ));
@@ -173,12 +184,19 @@ impl EntityView {
                         .unwrap_or_else(|| {
                             panic!("tried to move cursor without actively editing entity")
                         })
-                        .attribute_count()
+                        .attribute_count() - 1
                 {
                     self.cursor_pos += 1;
                 }
             }
 
+        }
+    }
+
+    pub fn validate_cursor_pos(&mut self) {
+        let max = self.entity.as_ref().unwrap_or_else(|| panic!("tried to access empty entity")).attribute_count() - 1;
+        if max < self.cursor_pos {
+            self.cursor_pos = max;
         }
     }
 }
@@ -326,6 +344,15 @@ impl Screen for EntityView {
                         panic!("{} while matching cursor index to attribute", e.to_string())
                     });
                     return Some(UiCallbackPreset::EditEntityAttribute(key.clone(), value));
+                }
+                UiKey::AddItem => {
+                    return Some(UiCallbackPreset::AddEntityAttribute);
+                }
+                UiKey::RemoveItem => {
+                    let attr = self.get_current_attribute().unwrap_or_else(|e| {
+                        panic!("{} while removing entity attribute", e.to_string())
+                    });
+                    return Some(UiCallbackPreset::RemoveEntityAttribute(attr));
                 }
                 UiKey::ExitSubmenu => {
                     return Some(UiCallbackPreset::ExitEntityView);
